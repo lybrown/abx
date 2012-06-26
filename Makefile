@@ -41,6 +41,8 @@ test: all
 	scp $(TARGET) bone:x/abx
 	ssh root@bone "cd ~lybrown/x/abx; ./abx"
 
+abx_pru0_bin.h abx_pru1_bin.h: pru.hp
+
 abx.o: abx_pru0_bin.h abx_pru1_bin.h
 
 $(TARGET): $(OBJ)

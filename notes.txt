@@ -1,0 +1,108 @@
+Fundamentally:
+If read from ram:  read DDR, write to DATA
+If write to ram:   read DATA, write to DDR
+
+RAS        _____/''''\______________/''''\_________
+RCAS       _____/'''''''''\_________/'''''''''\____
+WCAS       _____/''''''''''''\______/''''''''''''\_
+PHI0       _/'''''''''\_________/'''''''''\________
+PHI2       ''\_________/'''''''''\_________/'''''''
+R/W        ===XXX=================XXX==============
+ADDRESS    ===XXX=================XXX==============
+RDATA      -------------------X===X----------------
+WDATA      ---------------X=======X----------------
+
+Factors:
+  PORTB bits 1, 2, 8, high 5 bits of ADDRESS, R/W, REF
+  10bits = 1024 entry table = 4K if words
+  PORTB
+    8 - !selftest
+    6 - antic bank_en
+    5 - cpu bank_en
+    4:3 - bank
+    2 - !basic
+    1 - osrom
+
+INIT:
+  EXTSEL = active
+  DDIR = atari-to-bone (DATA)
+  ADIR = atari-to-bone (ADDRESS, R/W, REF, etc.)
+LOOP:
+  Wait for PHI2 low
+  Wait for PHI2 high
+  Assemble factors
+  JMP *(jumptable + factors)
+.origin 0x1000
+NOP:
+  JMP LOOP
+.origin 0x1100
+READ:
+  DDIR = bone-to-atari
+  DATA = *(bankoffset + ADDRESS)
+  Wait for PHI2 low
+  DDIR = atari-to-bone
+  JMP LOOP
+.origin 0x1200
+WRITE:
+  JSR WAIT_FOR_DATA
+  *(bankoffset + ADDRESS) = DATA
+  JMP LOOP
+.origin 0x1300
+WRITE_TO_D7XX:
+  JSR WAIT_FOR_DATA
+  (hardware + ADDRESS & 0x0fff) = DATA
+  bank = ADDRESS & 0x00ff | DATA
+  bankoffset = ddr + bank << 16
+  bone_en = bank != 0xffff
+  JMP LOOP
+.origin 0x1400
+WRITE_TO_DXXX:
+  JSR WAIT_FOR_DATA
+  (hardware + ADDRESS & 0x0fff) = DATA
+  JMP LOOP
+.origin 0x1500
+WAIT_FOR_DATA:
+  Wait for PHI2 low
+  Or wait for ~200ns
+  RTS
+
+
+Computing lookup table:
+
+UPPERCASE = PBI SIGNALS or OE
+lowercase = extension values
+
+Wait for PHI2, RAS or CAS
+
+Read ADDRESS, DATA, R/W, REF, HALT, EXTENB
+
+write = R/W
+read = !R/W
+
+bankselect = ADDRESS & 0xff80 == 0xd700
+if (bankselect)
+  bank = ADDRESS & 0x00ff | DATA
+
+portbselect = ADDRESS == 0xd301
+if (portbselect && write)
+  portb = DATA
+  osrom_en = portb & 0x1
+  basic_en = !(portb & 0x2)
+  self_en = !(portb & 0x8)
+
+selfrange = 0x5000 <= ADDRESS && ADDRESS <= 0x57ff
+basicrange = 0xa000 <= ADDRESS && ADDRESS <= 0xbfff
+osromrange = 0xc000 <= ADDRESS && ADDRESS <= 0xffff
+hardrange = 0xd000 <= ADDRESS && ADDRESS <= 0xd7ff
+
+ext_address = bank << 16 | ADDRESS
+
+rom_or_hardware =
+  basicrange && basic_en ||
+  osromrange && osrom_en ||
+  selfrange && self_en ||
+  hardrange
+
+EXTSEL = !rom_or_hardware
+
+bone-to-atari = !rom_or_hardware && read && PHI2

@@ -66,6 +66,7 @@ int main (int argc, char **argv)
 
     /* Wait until PRU0 has finished execution */
     printf("INFO: Waiting for interrupt.\n");
+    fflush(stdout);
     prussdrv_pru_wait_event (PRU_EVTOUT_0);
     printf("INFO: PRU sent interrupt.\n");
     prussdrv_pru_clear_event (PRU0_ARM_INTERRUPT);
