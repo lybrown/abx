@@ -1,62 +1,71 @@
-// Atari XL PBI to Beaglebone Memory Expansion
+// Atari XL PBI to Beaglebone memory expansion
 
 .origin 0
-.entrypoint ABX_PRU0
+.entrypoint abx_pru0
 
 #include "pru.hp"
 
-ABX_PRU0:
+abx_pru0:
 
-    // Enable OCP master port
-    LBCO r0, CONST_PRUCFG, 4, 4
+    // Clear syscfg[standby_init] to enable ocp master port
+    lbco r0, CONST_PRUCFG, 4, 4
+    clr r0, r0, 4
+    sbco r0, CONST_PRUCFG, 4, 4
 
-    // Clear SYSCFG[STANDBY_INIT] to enable OCP master port
-    CLR r0, r0, 4
-    SBCO r0, CONST_PRUCFG, 4, 4
+    // Configure the programmable pointer register for pru0 by setting
+    // c28_pointer[15:0] field to 0x0120. this will make c28 point to
+    // 0x00012000 (pru shared ram).
+    mov r0, 0x00000120
+    mov r1, CTPPR_0
+    sbbo r0, r1, 0, 4
 
-    // Configure the programmable pointer register for PRU0 by setting
-    // c28_pointer[15:0] field to 0x0120. This will make C28 point to
-    // 0x00012000 (PRU shared RAM).
-    MOV r0, 0x00000120
-    MOV r1, CTPPR_0
-    ST32 r0, r1
+    // Load jumptable address into r29
+    mov r29, 0x1c00
 
-//    // Load values from read from the DDR memory into PRU shared RAM
-//
-//    LBCO r0, CONST_PRUSHAREDRAM, 0, 12
-//
-//    // Store values from external DDR Memory into Registers R0/R1/R2
-//
-//    SBCO r0, CONST_DDR, 0, 12
+    mov r1, 10
+blink:
+    mov r3, 7<<22
+    mov r4, GPIO1 | GPIO_SETDATAOUT
+    sbbo r3, r4, 0, 4
 
-    MOV r1, 10
-BLINK:
-    MOV r3, 7<<22
-    MOV r4, GPIO1 | GPIO_SETDATAOUT
-    SBBO r3, r4, 0, 4
+    mov r0, 0x00a00000
+delay:
+    sub r0, r0, 1
+    qbne delay, r0, 0
 
-    MOV r0, 0x00a00000
-DELAY:
-    SUB r0, r0, 1
-    QBNE DELAY, r0, 0
+    mov r3, 7<<22
+    mov r4, GPIO1 | GPIO_CLEARDATAOUT
+    sbbo r3, r4, 0, 4
 
-    MOV r3, 7<<22
-    MOV r4, GPIO1 | GPIO_CLEARDATAOUT
-    SBBO r3, r4, 0, 4
+    mov r0, 0x00a00000
+delay2:
+    sub r0, r0, 1
+    qbne delay2, r0, 0
 
-    MOV r0, 0x00a00000
-DELAY2:
-    SUB r0, r0, 1
-    QBNE DELAY2, r0, 0
+    sub r1, r1, 1
+    qbne blink, r1, 0
 
-    SUB r1, r1, 1
-    QBNE BLINK, r1, 0
+wait_phi2_rise:
+    wbc r31, 15
+    //jmp writeram
 
-//    WBC r31, 15
-//    MOV r1, 0x8c000000
-//    SBBO r31, r1, 0, 4
+    // Send notification to host for program completion
+    mov r31.b0, PRU0_ARM_INTERRUPT+16
+    halt
 
-    // Send notification to Host for program completion
-    MOV r31.b0, PRU0_ARM_INTERRUPT+16
+.origin 0x1000
+readram:
+    jmp writeram
+.origin 0x1200
+writeram:
 
-    HALT
+    jmp wait_phi2_rise
+.origin 0x1400
+readhard:
+    jmp writeram
+.origin 0x1600
+writehard:
+    jmp writeram
+.origin 0x1800
+nop:
+    jmp wait_phi2_rise

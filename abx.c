@@ -1,3 +1,5 @@
+// Atari XL PBI to Beaglebone Memory Expansion
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -9,6 +11,7 @@
 #include "pruss_intc_mapping.h"
 #include "abx_pru0_bin.h"
 #include "abx_pru1_bin.h"
+#include "abx_jumptable.h"
 
 #define DDR_BASEADDR 0x80000000
 
@@ -25,7 +28,7 @@ int main (int argc, char **argv)
     ret = prussdrv_open(PRU_EVTOUT_0);
     if (ret)
     {
-        printf("prussdrv_open open failed\n");
+        printf("ERROR: prussdrv_open open failed\n");
         return (ret);
     }
 
@@ -39,17 +42,23 @@ int main (int argc, char **argv)
     static void *ddrMem = 0;
     static void *sharedMem = 0;
 
+    /* Set pin mux */
+    if (system("echo 36 > /sys/kernel/debug/omap_mux/gpmc_ad15") != 0) {
+        printf("ERROR: Failed to set pin mux\n");
+        goto CLEANUP;
+    }
+
     /* open the device */
     mem_fd = open("/dev/mem", O_RDWR);
     if (mem_fd < 0) {
-        printf("Failed to open /dev/mem (%s)\n", strerror(errno));
+        printf("ERROR: Failed to open /dev/mem (%s)\n", strerror(errno));
         goto CLEANUP;
     }
 
     /* map the DDR memory */
     ddrMem = mmap(0, 0x0FFFFFFF, PROT_WRITE | PROT_READ, MAP_SHARED, mem_fd, DDR_BASEADDR);
     if (ddrMem == NULL) {
-        printf("Failed to map the device (%s)\n", strerror(errno));
+        printf("ERROR: Failed to map the device (%s)\n", strerror(errno));
         goto CLEANUP;
     }
 
@@ -61,6 +70,7 @@ int main (int argc, char **argv)
     prussdrv_pru_disable(PRU_NUM1);
     prussdrv_pru_write_memory(PRUSS0_PRU0_IRAM, 0, abx_pru0, sizeof(abx_pru0));
     prussdrv_pru_write_memory(PRUSS0_PRU1_IRAM, 0, abx_pru1, sizeof(abx_pru1));
+    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0x1c00, abx_pru0, sizeof(abx_pru1));
     prussdrv_pru_enable(PRU_NUM0);
     prussdrv_pru_enable(PRU_NUM1);
 

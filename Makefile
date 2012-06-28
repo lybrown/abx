@@ -43,7 +43,10 @@ test: all
 
 abx_pru0_bin.h abx_pru1_bin.h: pru.hp
 
-abx.o: abx_pru0_bin.h abx_pru1_bin.h
+abx_jumptable.h: abx_jumptable.pl
+	./$< > $@~ && mv $@~ $@
+
+abx.o: abx_pru0_bin.h abx_pru1_bin.h abx_jumptable.h
 
 $(TARGET): $(OBJ)
 	$(CROSS_COMPILE)gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)
