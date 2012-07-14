@@ -23,10 +23,10 @@ sub main {
         $_ = $key;
         my $hi5 = take(5) << 3;
         my $selftest = take(1);
-        my $basic = b(take(1));
-        my $osrom = b(take(1));
-        my $rw = b(take(1));
-        my $ref = b(take(1));
+        my $basic = take(1);
+        my $osrom = take(1);
+        my $rw = take(1);
+        my $ref = take(1);
 
         my $selfrange = 0x50 <= $hi5 && $hi5 <= 0x57;
         my $basicrange = 0xa0 <= $hi5 && $hi5 <= 0xbf;
@@ -54,7 +54,7 @@ sub main {
             $writehard ? "WRITEHARD" :
             "NOP";
         if ($key % 32 == 0) {
-            print "// selftest=$selftest basic=$basic osrom=$osrom rw=$rw ref=$ref\n    ";
+            print "// ref=$ref rw=$rw osrom=$osrom basic=$basic selftest=$selftest\n    ";
         }
         print $label;
         if (($key + 1) % 8) {

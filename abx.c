@@ -15,6 +15,16 @@
 
 #define DDR_BASEADDR 0x80000000
 
+int mux(char *name, int val)
+{
+    char cmd[1024];
+    sprintf(cmd, "echo %x > /sys/kernel/debug/omap_mux/%s", val, name);
+    if (system(cmd) != 0) {
+        printf("ERROR: Failed to set pin mux %s = %x\n", name, val);
+        return -1;
+    }
+    return 0;
+}
 int main (int argc, char **argv)
 {
     unsigned int ret;
@@ -42,10 +52,47 @@ int main (int argc, char **argv)
     static void *ddrMem = 0;
     static void *sharedMem = 0;
 
+    struct MUX { char *name; int val; } muxes[] = {
+        // GPIO1
+        {"gpmc_ad0", 0x37},
+        {"gpmc_ad1", 0x37},
+        {"gpmc_ad2", 0x37},
+        {"gpmc_ad3", 0x37},
+        {"gpmc_ad4", 0x37},
+        {"gpmc_ad5", 0x37},
+        {"gpmc_ad6", 0x37},
+        {"gpmc_ad7", 0x37},
+        {"gpmc_ad8", 0x37},
+        {"gpmc_ad9", 0x37},
+        {"gpmc_ad10", 0x37},
+        {"gpmc_ad11", 0x37},
+        {"gpmc_ad12", 0x37},
+        {"gpmc_ad13", 0x37},
+        {"gpmc_ad14", 0x37},
+        {"gpmc_ad15", 0x37},
+        // GPIO2
+        {"gpmc_clk", 0x37},
+        {"gpmc_advn_ale", 0x37},
+        {"gpmc_oen_ren", 0x37},
+        {"gpmc_wen", 0x37},
+        {"gpmc_ben0_cle", 0x37},
+        {"lcd_data0", 0x37},
+        {"lcd_data1", 0x37},
+        {"lcd_data2", 0x37},
+        {"lcd_data3", 0x37},
+        {"lcd_data4", 0x37},
+        {"lcd_data5", 0x37},
+        {"lcd_data6", 0x37},
+        {"lcd_data7", 0x37},
+        {"lcd_data8", 0x37},
+        {"lcd_data9", 0x37},
+        {"lcd_data10", 0x37},
+        {"lcd_data11", 0x37},
+    };
+
     /* Set pin mux */
-    if (system("echo 36 > /sys/kernel/debug/omap_mux/gpmc_ad15") != 0) {
-        printf("ERROR: Failed to set pin mux\n");
-        goto CLEANUP;
+    for (int i = 0; i < sizeof(muxes) / sizeof(struct MUX); ++i) {
+        if (mux(muxes[i].name, muxes[i].val)) goto CLEANUP;
     }
 
     /* open the device */
@@ -70,7 +117,7 @@ int main (int argc, char **argv)
     prussdrv_pru_disable(PRU_NUM1);
     prussdrv_pru_write_memory(PRUSS0_PRU0_IRAM, 0, abx_pru0, sizeof(abx_pru0));
     prussdrv_pru_write_memory(PRUSS0_PRU1_IRAM, 0, abx_pru1, sizeof(abx_pru1));
-    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0x1c00, abx_pru0, sizeof(abx_pru1));
+    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0x1800, abx_pru0, sizeof(abx_pru1));
     prussdrv_pru_enable(PRU_NUM0);
     prussdrv_pru_enable(PRU_NUM1);
 
@@ -80,6 +127,23 @@ int main (int argc, char **argv)
     prussdrv_pru_wait_event (PRU_EVTOUT_0);
     printf("INFO: PRU sent interrupt.\n");
     prussdrv_pru_clear_event (PRU0_ARM_INTERRUPT);
+
+    unsigned long read_addr = 0x8c000000;
+    unsigned long read_offs = read_addr - 0x80000000;
+    printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n", read_addr, read_offs, ddrMem);
+    int i;
+    for (i = 0; i < 0x100; ++i) {
+        char* rd = (char*)(ddrMem + read_offs + i);
+        //char* rd = (char*)(ddrMem + OFFSET_DDR + i);
+        //char* phys = prussdrv_get_phys_addr(rd);
+        //printf("%08x, (%08x) = 0x%02x\n", rd, phys, *rd);
+        printf("0x%02x", *rd);
+        if (i % 16 == 15) {
+            printf("\n");
+        } else { 
+            printf(", ");
+        }
+    }
 
 CLEANUP:
     /* Disable PRU and close memory mapping*/

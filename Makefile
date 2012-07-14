@@ -13,7 +13,7 @@ LIBDIR_APP_LOADER := .
 INCDIR_APP_LOADER := .
 BINDIR := .
 
-CFLAGS += -Wall -I$(INCDIR_APP_LOADER) -D__DEBUG -O2 -mtune=cortex-a8 -march=armv7-a
+CFLAGS += -Wall -I$(INCDIR_APP_LOADER) -D__DEBUG -O2 -mtune=cortex-a8 -march=armv7-a -std=gnu99
 LDFLAGS += -L$(LIBDIR_APP_LOADER) -lpthread
 OBJDIR := .
 TARGET := $(BINDIR)/abx
@@ -39,7 +39,7 @@ all: $(TARGET)
 
 test: all
 	scp $(TARGET) bone:x/abx
-	ssh root@bone "cd ~lybrown/x/abx; ./abx"
+	ssh root@bone "cd ~lybrown/x/abx; time ./abx"
 
 abx_pru0_bin.h abx_pru1_bin.h: pru.hp
 
