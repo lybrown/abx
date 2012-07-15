@@ -1,9 +1,53 @@
 // Atari XL PBI to Beaglebone memory expansion
 
+// Convention:
+//  r0-r15 are temp registers
+//  r16-r29 are variables
+//  r30-r31 are write and read I/O
 .origin 0
 .entrypoint abx_pru0
 
 #include "pru.hp"
+
+.macro BLINK_BOARD_LEDS
+    mov r3, 7<<22
+    mov r1, 10
+blink:
+    mov r4, GPIO1 | GPIO_SETDATAOUT
+    sbbo r3, r4, 0, 4
+
+    mov r0, 0x00a00000
+delay:
+    sub r0, r0, 1
+    qbne delay, r0, 0
+
+    mov r4, GPIO1 | GPIO_CLEARDATAOUT
+    sbbo r3, r4, 0, 4
+
+    mov r0, 0x00a00000
+delay2:
+    sub r0, r0, 1
+    qbne delay2, r0, 0
+
+    sub r1, r1, 1
+    qbne blink, r1, 0
+.endm
+
+.macro CLEAR_DDR_MEMORY
+    zero &r0, 64
+    mov r1, 0x8c000000
+    mov r2, 0x90000000
+clear:
+    sbbo r0, r1, 0, 64
+    add r1, r1, 64
+    qblt clear, r2, r1
+.endm
+
+.macro QUIT
+    // Send notification to host for program completion
+    mov r31.b0, PRU0_ARM_INTERRUPT+16
+    halt
+.endm
 
 abx_pru0:
 
@@ -36,58 +80,29 @@ abx_pru0:
     mov ddr, 0x8c000000
     mov capture_addr, ddr
 
+    BLINK_BOARD_LEDS
 
-    mov r4, GPIO1 | GPIO_OE
-    lbbo r3, r4, 0, 4
-    clr r3, 0
-    sbbo r3, r4, 0, 4
+    CLEAR_DDR_MEMORY
 
-    //mov r3, 7<<22
-    mov r3, 1
-    mov r1, 10
-blink:
-    mov r4, GPIO1 | GPIO_SETDATAOUT
-    sbbo r3, r4, 0, 4
+    // Clear ABX_OE (GPIO1_31) value
+    mov r0, GPIO1 | GPIO_CLEARDATAOUT
+    mov r1, 1<<31
+    sbbo r1, r0, 0, 4
 
-    mov r0, 0x00a00000
-delay:
-    sub r0, r0, 1
-    qbne delay, r0, 0
+    // Clear ABX_OE (GPIO1_31) output enable
+    mov r0, GPIO1 | GPIO_OE
+    lbbo r1, r0, 0, 4
+    clr r1, 31
+    sbbo r1, r0, 0, 4
 
-    mov r4, GPIO1 | GPIO_CLEARDATAOUT
-    sbbo r3, r4, 0, 4
-
-    mov r0, 0x00a00000
-delay2:
-    sub r0, r0, 1
-    qbne delay2, r0, 0
-
-    sub r1, r1, 1
-    qbne blink, r1, 0
-
-    // Send notification to host for program completion
-    mov r31.b0, PRU0_ARM_INTERRUPT+16
-    halt
-//    zero &r0, 32
-//    mov r29, 0x90000000
-//    mov r0, 4
-//clear:
-//    sbbo r0, capture_addr, 0, 32
-//    add capture_addr, capture_addr, 32
-//    qblt clear, r29, capture_addr
-//
-//    // Send notification to host for program completion
-//    mov r31.b0, PRU0_ARM_INTERRUPT+16
-//    halt
-
-    mov r2, 0x100
+    mov r2, 0x10000
     add r2, r2, ddr
 capture:
     lbbo data1, gpio1_datain, 0, 4
     lbbo data2, gpio2_datain, 0, 4
     sbbo data1, capture_addr, 0, 8
 
-    mov r1, 0x1000000
+    mov r1, 0x10
     mov r0, 0
 capdelay:
     sub r1, r1, 1
@@ -96,9 +111,7 @@ capdelay:
     add capture_addr, capture_addr, 8
     qblt capture, r2, capture_addr
 
-    // Send notification to host for program completion
-    mov r31.b0, PRU0_ARM_INTERRUPT+16
-    halt
+    QUIT
 
 wait_phi2_rise:
     wbc r31, 15
@@ -120,9 +133,7 @@ wait_phi2_fall:
 
     //jmp writeram
 
-    // Send notification to host for program completion
-    mov r31.b0, PRU0_ARM_INTERRUPT+16
-    halt
+    QUIT
 
 .origin 0x1000
 readram:

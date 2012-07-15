@@ -54,45 +54,42 @@ int main (int argc, char **argv)
 
     struct MUX { char *name; int val; } muxes[] = {
         // GPIO1
-        {"gpmc_ad0", 0x37},
-        {"gpmc_ad1", 0x37},
-        {"gpmc_ad2", 0x37},
-        {"gpmc_ad3", 0x37},
-        {"gpmc_ad4", 0x37},
-        {"gpmc_ad5", 0x37},
-        {"gpmc_ad6", 0x37},
-        {"gpmc_ad7", 0x37},
-        {"gpmc_ad8", 0x37},
-        {"gpmc_ad9", 0x37},
-        {"gpmc_ad10", 0x37},
-        {"gpmc_ad11", 0x37},
-        {"gpmc_ad12", 0x37},
-        {"gpmc_ad13", 0x37},
-        {"gpmc_ad14", 0x37},
-        {"gpmc_ad15", 0x37},
+        {"gpmc_ad0", 0x2f}, // d0
+        {"gpmc_ad1", 0x2f},
+        {"gpmc_ad2", 0x2f},
+        {"gpmc_ad3", 0x2f},
+        {"gpmc_ad4", 0x2f},
+        {"gpmc_ad5", 0x2f},
+        {"gpmc_ad6", 0x2f},
+        {"gpmc_ad7", 0x2f}, // d7
+        {"gpmc_ad14", 0x2e}, // rw
+        {"gpmc_ad15", 0x2e}, // phi2
+        {"gpmc_csn1", 0x37}, // oe
+        {"gpmc_csn2", 0x37}, // dir
         // GPIO2
-        {"gpmc_clk", 0x37},
-        {"gpmc_advn_ale", 0x37},
-        {"gpmc_oen_ren", 0x37},
-        {"gpmc_wen", 0x37},
-        {"gpmc_ben0_cle", 0x37},
-        {"lcd_data0", 0x37},
-        {"lcd_data1", 0x37},
-        {"lcd_data2", 0x37},
-        {"lcd_data3", 0x37},
-        {"lcd_data4", 0x37},
-        {"lcd_data5", 0x37},
-        {"lcd_data6", 0x37},
-        {"lcd_data7", 0x37},
-        {"lcd_data8", 0x37},
-        {"lcd_data9", 0x37},
-        {"lcd_data10", 0x37},
-        {"lcd_data11", 0x37},
+        {"gpmc_clk", 0x2f}, // a0
+        {"gpmc_advn_ale", 0x2f},
+        {"gpmc_oen_ren", 0x2f},
+        {"gpmc_wen", 0x2f},
+        {"gpmc_ben0_cle", 0x2f},
+        {"lcd_data0", 0x2f},
+        {"lcd_data1", 0x2f},
+        {"lcd_data2", 0x2f},
+        {"lcd_data3", 0x2f},
+        {"lcd_data4", 0x2f},
+        {"lcd_data5", 0x2f},
+        {"lcd_data6", 0x2f},
+        {"lcd_data7", 0x2f},
+        {"lcd_data8", 0x2f},
+        {"lcd_data9", 0x2f},
+        {"lcd_data10", 0x2f}, // a15
+        {"lcd_data11", 0x2f}, // ref
+        {0, 0},
     };
 
     /* Set pin mux */
-    for (int i = 0; i < sizeof(muxes) / sizeof(struct MUX); ++i) {
-        if (mux(muxes[i].name, muxes[i].val)) goto CLEANUP;
+    for (struct MUX *m = muxes; m->name; ++m) {
+        if (mux(m->name, m->val)) goto CLEANUP;
     }
 
     /* open the device */
@@ -130,15 +127,13 @@ int main (int argc, char **argv)
 
     unsigned long read_addr = 0x8c000000;
     unsigned long read_offs = read_addr - 0x80000000;
-    printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n", read_addr, read_offs, ddrMem);
+    printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n",
+        read_addr, read_offs, (unsigned long)ddrMem);
     int i;
-    for (i = 0; i < 0x100; ++i) {
+    for (i = 0; i < 0x1000; ++i) {
         char* rd = (char*)(ddrMem + read_offs + i);
-        //char* rd = (char*)(ddrMem + OFFSET_DDR + i);
-        //char* phys = prussdrv_get_phys_addr(rd);
-        //printf("%08x, (%08x) = 0x%02x\n", rd, phys, *rd);
         printf("0x%02x", *rd);
-        if (i % 16 == 15) {
+        if (i % 8 == 7) {
             printf("\n");
         } else { 
             printf(", ");
