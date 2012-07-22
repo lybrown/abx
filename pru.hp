@@ -20,6 +20,12 @@
 #define CONST_L3RAM C30
 #define CONST_DDR C31
 
+#define CTRL_CONTROL 0x22000
+#define CTRL_STATUS 0x22004
+#define CTRL_WAKEUP_EN 0x22008
+#define CTRL_CYCLE 0x2200c
+#define CTRL_STALL 0x22010
+
 // Address for the Constant table Programmable Pointer Register 0(CTPPR_0)
 #define CTBIR_0 0x22020
 // Address for the Constant table Programmable Pointer Register 0(CTPPR_0)

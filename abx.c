@@ -130,7 +130,7 @@ int main (int argc, char **argv)
     printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n",
         read_addr, read_offs, (unsigned long)ddrMem);
     int i;
-    for (i = 0; i < 0x1000; ++i) {
+    for (i = 0; i < 0x100; ++i) {
         char* rd = (char*)(ddrMem + read_offs + i);
         printf("0x%02x", *rd);
         if (i % 8 == 7) {
