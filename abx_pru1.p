@@ -1,11 +1,22 @@
 // Atari XL PBI to Beaglebone Memory Expansion
 
 .origin 0
-.entrypoint ABX_PRU1
+.entrypoint abx_pru1
 
 #include "pru.hp"
 
-ABX_PRU1:
+#define pru1_r31_shadow r29
+
+abx_pru1:
+    mov r30, 0
+    mov r30, 0
+
+    mov pru1_r31_shadow, 0x10000
+
+copy:
+    sbbo r31, pru1_r31_shadow, 0, 4
+    jmp copy
+
     HALT
 
 //LOOP:

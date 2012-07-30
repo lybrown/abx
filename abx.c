@@ -53,56 +53,72 @@ int main (int argc, char **argv)
     static void *sharedMem = 0;
 
     struct MUX { char *name; int val; } muxes[] = {
-        // GPIO1
-        {"gpmc_ad0", 0x2f}, // d0
-        {"gpmc_ad1", 0x2f},
-        {"gpmc_ad2", 0x2f},
-        {"gpmc_ad3", 0x2f},
-        {"gpmc_ad4", 0x2f},
-        {"gpmc_ad5", 0x2f},
-        {"gpmc_ad6", 0x2f},
-        {"gpmc_ad7", 0x2f}, // d7
-        {"gpmc_ad14", 0x2e}, // rw
+//        // GPIO1
+//        {"gpmc_ad0", 0x2f}, // d0
+//        {"gpmc_ad1", 0x2f},
+//        {"gpmc_ad2", 0x2f},
+//        {"gpmc_ad3", 0x2f},
+//        {"gpmc_ad4", 0x2f},
+//        {"gpmc_ad5", 0x2f},
+//        {"gpmc_ad6", 0x2f},
+//        {"gpmc_ad7", 0x2f}, // d7
+//        {"gpmc_ad14", 0x2e}, // rw
+//        {"gpmc_ad15", 0x2e}, // phi2
+//        {"gpmc_csn1", 0x37}, // oe
+//        {"gpmc_csn2", 0x37}, // dir
+//        // GPIO2
+//        {"gpmc_clk", 0x2f}, // a0
+//        {"gpmc_advn_ale", 0x2f},
+//        {"gpmc_oen_ren", 0x2f},
+//        {"gpmc_wen", 0x2f},
+//        {"gpmc_ben0_cle", 0x2f},
+//        {"lcd_data0", 0x2e},
+//        {"lcd_data1", 0x2e},
+//        {"lcd_data2", 0x2e},
+//        {"lcd_data3", 0x2e},
+//        {"lcd_data4", 0x2e},
+//        {"lcd_data5", 0x2e},
+//        {"lcd_data6", 0x2e},
+//        {"lcd_data7", 0x2e},
+//        {"lcd_data8", 0x2f},
+//        {"lcd_data9", 0x2f},
+//        {"lcd_data10", 0x2f}, // a15
+//        {"lcd_data11", 0x2f}, // ref
+
+        // P8
+        {"lcd_data0", 0x2e}, // i0
+        {"lcd_data1", 0x2e},
+        {"lcd_data2", 0x2e},
+        {"lcd_data3", 0x2e},
+        {"lcd_data4", 0x2e},
+        {"lcd_data5", 0x2e},
+        {"lcd_data6", 0x2e},
+        {"lcd_data7", 0x2e}, // i7
+        {"lcd_vsync", 0x0d}, // o0
+        {"lcd_hsync", 0x0d},
+        {"lcd_pclk", 0x0d},
+        {"lcd_ac_bias_en", 0x0d},
+        {"gpmc_csn1", 0x0d},
+        {"gpmc_csn2", 0x0d},
+        {"gpmc_ad12", 0x0e},
+        {"gpmc_ad13", 0x0e}, // o7
         {"gpmc_ad15", 0x2e}, // phi2
-        {"gpmc_csn1", 0x37}, // oe
-        {"gpmc_csn2", 0x37}, // dir
-        // GPIO2
-        {"gpmc_clk", 0x2f}, // a0
-        {"gpmc_advn_ale", 0x2f},
-        {"gpmc_oen_ren", 0x2f},
-        {"gpmc_wen", 0x2f},
-        {"gpmc_ben0_cle", 0x2f},
-        {"lcd_data0", 0x2f},
-        {"lcd_data1", 0x2f},
-        {"lcd_data2", 0x2f},
-        {"lcd_data3", 0x2f},
-        {"lcd_data4", 0x2f},
-        {"lcd_data5", 0x2f},
-        {"lcd_data6", 0x2f},
-        {"lcd_data7", 0x2f},
-        {"lcd_data8", 0x2f},
-        {"lcd_data9", 0x2f},
-        {"lcd_data10", 0x2f}, // a15
-        {"lcd_data11", 0x2f}, // ref
+        {"gpmc_ad14", 0x2e}, // rw
+        // P9
+        {"mcasp0_aclkx", 0x0d}, // ctrl_en
+        {"mcasp0_fsx", 0x0d}, // ahi_en
+        {"mcasp0_axr0", 0x0d}, // dataout_en
+        {"mcasp0_ahclkr", 0x0d}, // datain_en
+        {"mcasp0_fsr", 0x0d}, // alo_en
+        {"mcasp0_ahclkx", 0x2e}, // ref
+
         {0, 0},
     };
-
-    /* Set pin mux */
-    for (struct MUX *m = muxes; m->name; ++m) {
-        if (mux(m->name, m->val)) goto CLEANUP;
-    }
 
     /* open the device */
     mem_fd = open("/dev/mem", O_RDWR);
     if (mem_fd < 0) {
         printf("ERROR: Failed to open /dev/mem (%s)\n", strerror(errno));
-        goto CLEANUP;
-    }
-
-    /* map the DDR memory */
-    ddrMem = mmap(0, 0x0FFFFFFF, PROT_WRITE | PROT_READ, MAP_SHARED, mem_fd, DDR_BASEADDR);
-    if (ddrMem == NULL) {
-        printf("ERROR: Failed to map the device (%s)\n", strerror(errno));
         goto CLEANUP;
     }
 
@@ -115,8 +131,13 @@ int main (int argc, char **argv)
     prussdrv_pru_write_memory(PRUSS0_PRU0_IRAM, 0, abx_pru0, sizeof(abx_pru0));
     prussdrv_pru_write_memory(PRUSS0_PRU1_IRAM, 0, abx_pru1, sizeof(abx_pru1));
     prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0x1800, abx_pru0, sizeof(abx_pru1));
+    //prussdrv_pru_enable(PRU_NUM1);
     prussdrv_pru_enable(PRU_NUM0);
-    prussdrv_pru_enable(PRU_NUM1);
+
+    /* Set pin mux */
+    for (struct MUX *m = muxes; m->name; ++m) {
+        if (mux(m->name, m->val)) goto CLEANUP;
+    }
 
     /* Wait until PRU0 has finished execution */
     printf("INFO: Waiting for interrupt.\n");
@@ -125,15 +146,22 @@ int main (int argc, char **argv)
     printf("INFO: PRU sent interrupt.\n");
     prussdrv_pru_clear_event (PRU0_ARM_INTERRUPT);
 
+    /* map the DDR memory */
+    ddrMem = mmap(0, 0x0FFFFFFF, PROT_WRITE | PROT_READ, MAP_SHARED, mem_fd, DDR_BASEADDR);
+    if (ddrMem == NULL) {
+        printf("ERROR: Failed to map the device (%s)\n", strerror(errno));
+        goto CLEANUP;
+    }
+
     unsigned long read_addr = 0x8c000000;
     unsigned long read_offs = read_addr - 0x80000000;
     printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n",
         read_addr, read_offs, (unsigned long)ddrMem);
     int i;
-    for (i = 0; i < 0x100; ++i) {
+    for (i = 0; i < 0x200; ++i) {
         char* rd = (char*)(ddrMem + read_offs + i);
         printf("0x%02x", *rd);
-        if (i % 8 == 7) {
+        if (i % 4 == 3) {
             printf("\n");
         } else { 
             printf(", ");
