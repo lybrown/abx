@@ -45,12 +45,10 @@
 .origin 0
 .entrypoint abx_pru0
 
-    mov r30, 0
-    mov r30, 0
+    mov r30, 0xffffffff
 
 #include "pru.hp"
 
-#define save r17
 #define pru1_r31_shadow r18
 #define num_zero r19
 #define lastcycles r20
@@ -58,8 +56,8 @@
 #define gpio2_dataout r22
 #define capture_addr r23
 #define ddr r24
-#define data1 r25
-#define data2 r26
+#define pru1_r30 r25
+#define pru1_r31 r26
 #define gpio2_datain r27
 #define gpio1_datain r28
 #define jumptable r29
@@ -68,11 +66,11 @@
 #define localdata2 c25
 #define shared c28
 
-#define ALO_EN 0x00001
-#define AHI_EN 0x00010
-#define DATAOUT_EN 0x00100
-#define DATAIN_EN 0x01000
-#define CTRL_EN 0x10000
+#define ALO_EN 0b011110
+#define AHI_EN 0b011101
+#define DATAOUT_EN 0b011011
+#define DATAIN_EN 0b010111
+#define CTRL_EN 0b011111
 
     mov num_zero, 0
 
@@ -135,29 +133,30 @@ clear:
 .endm
 
 .macro ENABLE_BUFFERS
-    // Clear ABX_OE (GPIO1_31) value
-    mov r0, GPIO1 | GPIO_CLEARDATAOUT
-    mov r1, 1<<31
-    sbbo r1, r0, 0, 4
-
-    // Clear ABX_OE (GPIO1_31) output enable
-    mov r0, GPIO1 | GPIO_OE
-    lbbo r1, r0, 0, 4
-    clr r1, 31
-    sbbo r1, r0, 0, 4
+//    // Clear ABX_OE (GPIO1_31) value
+//    mov r0, GPIO1 | GPIO_CLEARDATAOUT
+//    mov r1, 1<<31
+//    sbbo r1, r0, 0, 4
+//
+//    // Clear ABX_OE (GPIO1_31) output enable
+//    mov r0, GPIO1 | GPIO_OE
+//    lbbo r1, r0, 0, 4
+//    clr r1, 31
+//    sbbo r1, r0, 0, 4
 .endm
 
 .macro DISABLE_BUFFERS
-    // Set ABX_OE (GPIO1_31) value
-    mov r0, GPIO1 | GPIO_SETDATAOUT
-    mov r1, 1<<31
-    sbbo r1, r0, 0, 4
-
-    // Clear ABX_OE (GPIO1_31) output enable
-    mov r0, GPIO1 | GPIO_OE
-    lbbo r1, r0, 0, 4
-    clr r1, 31
-    sbbo r1, r0, 0, 4
+//    // Set ABX_OE (GPIO1_31) value
+//    mov r0, GPIO1 | GPIO_SETDATAOUT
+//    mov r1, 1<<31
+//    sbbo r1, r0, 0, 4
+//
+//    // Clear ABX_OE (GPIO1_31) output enable
+//    mov r0, GPIO1 | GPIO_OE
+//    lbbo r1, r0, 0, 4
+//    clr r1, 31
+//    sbbo r1, r0, 0, 4
+    mov r30, 0xffffffff
 .endm
 
 .macro QUIT
@@ -172,6 +171,12 @@ clear:
     mov r0, value
     mov r1, addr
     sbbo r0, r1, 0, 4
+.endm
+
+.macro PEEK
+.mparam addr
+    mov r1, addr
+    lbbo r0, r1, 0, 4
 .endm
 
 abx_pru0:
@@ -196,8 +201,11 @@ abx_pru0:
     // Load DDR address
     mov ddr, 0x8c000000
     mov capture_addr, ddr
-    //mov capture_addr, 0
     mov pru1_r31_shadow, 0x10000
+    // Address of PRU1 R30 debug register
+    mov pru1_r30, 0x24478
+    // Address of PRU1 R31 debug register
+    mov pru1_r31, 0x2447c
 
     BLINK_BOARD_LEDS
 
@@ -246,9 +254,18 @@ copy2:
     add r0, r0, 32
     qblt copy2, r1, r0
 
+
+    mov r0, 0xffffeeee
+    sbbo r0, capture_addr, 0, 4
+    add capture_addr, capture_addr, 4
+    PEEK 0x24000
+    sbbo r0, capture_addr, 0, 4
+    add capture_addr, capture_addr, 4
     WRITE_CYCLES_STALLS capture_addr
     add capture_addr, capture_addr, 8
 .endm
+
+    // None of this appears to help lbbo latency:
 
     // Set PRU to class 1 in EMIF 
     mov r0, 0x4c000104
@@ -268,14 +285,12 @@ copy2:
     sbbo r1, r0, 0, 4
 
     ENABLE_CYCLE_COUNTER
-    // Address of PRU1 R31
-    mov r15, 0x2247c
     WRITE_CYCLES_STALLS capture_addr
     add capture_addr, capture_addr, 8
     TESTSTORE jumptable
     TESTLOAD jumptable
-    TESTSTORE r15
-    TESTLOAD r15
+    TESTSTORE pru1_r31
+    TESTLOAD pru1_r31
     TESTSTORE gpio2_dataout
     TESTLOAD gpio2_datain
     TESTSTORE capture_addr
@@ -286,8 +301,9 @@ copy2:
 
 // Capture Test
     ENABLE_BUFFERS
-    zero &data1, 8
+    //zero &data1, 8
 
+    ldi r30, AHI_EN
     mov r0, 0
     mov r2.w0, 0x200-8
     mov r2.w2, capture_addr.w2
@@ -305,20 +321,29 @@ capture:
 
     //lbbo r0.b1, pru1_r31_shadow, 0, 1
     //lbbo r0.b1, r15, 0, 1 // Doesn't work --> reads zero
-    lbbo r0.b1, r15, 0, 1
     //mov r0.b0, r31.b1
 
-//    ldi r30, AHI_EN
-//    ldi r30, AHI_EN
-//    lbco r0.b1, shared, 0, 1
-//    ldi r30, ALO_EN
-//    ldi r30, ALO_EN
-//    lbco r0.b2, shared, 0, 1
-//    ldi r30, DATAIN_EN
-//    ldi r30, DATAIN_EN
-//    lbco r0.b3, shared, 0, 1
-
     //lbbo r0.b2, ddr, 0, 1
+
+    //lbbo r0, pru1_r31, 0, 4
+    //mov r0, r31
+
+.macro EN_DELAY
+    mov r0, r0
+    mov r0, r0
+.endm
+
+    mov r0.b3, r31.b1
+    ldi r30, AHI_EN
+    EN_DELAY
+    lbbo r0.b0, pru1_r31, 0, 1
+    ldi r30, ALO_EN
+    EN_DELAY
+    lbbo r0.b1, pru1_r31, 0, 1
+    ldi r30, DATAIN_EN
+    EN_DELAY
+    lbbo r0.b2, pru1_r31, 0, 1
+
     sbbo r0, capture_addr, 0, 4
 
 //    mov r1, 0x1

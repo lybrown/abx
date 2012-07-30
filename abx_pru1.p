@@ -8,8 +8,7 @@
 #define pru1_r31_shadow r29
 
 abx_pru1:
-    mov r30, 0
-    mov r30, 0
+    mov r30, 0xffffffff
 
     mov pru1_r31_shadow, 0x10000
 
