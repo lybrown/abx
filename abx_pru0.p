@@ -331,18 +331,24 @@ capture:
 .macro EN_DELAY
     mov r0, r0
     mov r0, r0
+    mov r0, r0
+    mov r0, r0
+    mov r0, r0
 .endm
 
-    mov r0.b3, r31.b1
-    ldi r30, AHI_EN
-    EN_DELAY
+    wbc r31, 15
+    wbs r31, 15
+    lsr r0.b3, r31.b0, 7
+    add r0.b3, r0.b3, r31.b1
     lbbo r0.b0, pru1_r31, 0, 1
     ldi r30, ALO_EN
     EN_DELAY
     lbbo r0.b1, pru1_r31, 0, 1
     ldi r30, DATAIN_EN
-    EN_DELAY
+    //EN_DELAY
+    lbbo r1, ddr, 0, 1
     lbbo r0.b2, pru1_r31, 0, 1
+    ldi r30, AHI_EN
 
     sbbo r0, capture_addr, 0, 4
 
