@@ -154,6 +154,7 @@ int main (int argc, char **argv)
     }
 
     unsigned long read_addr = 0x8c000000;
+    //unsigned long read_addr = 0x8c00fe00;
     unsigned long read_offs = read_addr - 0x80000000;
     printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n",
         read_addr, read_offs, (unsigned long)ddrMem);

@@ -305,8 +305,8 @@ copy2:
 
     ldi r30, AHI_EN
     mov r0, 0
-    mov r2.w0, 0x200-8
-    mov r2.w2, capture_addr.w2
+    mov r1, 0x200-8
+    add r2, capture_addr, r1
 capture:
     //mov r31, r0
     //lsr r0, r0, 1
@@ -341,16 +341,17 @@ capture:
     lsr r0.b3, r31.b0, 7
     add r0.b3, r0.b3, r31.b1
     lbbo r0.b0, pru1_r31, 0, 1
-    ldi r30, ALO_EN
+    ldi r30, AHI_EN
     EN_DELAY
     lbbo r0.b1, pru1_r31, 0, 1
     ldi r30, DATAIN_EN
     //EN_DELAY
     lbbo r1, ddr, 0, 1
     lbbo r0.b2, pru1_r31, 0, 1
-    ldi r30, AHI_EN
+    ldi r30, ALO_EN
 
     sbbo r0, capture_addr, 0, 4
+    //sbbo r0.b2, ddr, r0.w0, 1
 
 //    mov r1, 0x1
 //    mov r0, 0
