@@ -105,12 +105,13 @@ int main (int argc, char **argv)
         {"gpmc_ad15", 0x2e}, // phi2
         {"gpmc_ad14", 0x2e}, // rw
         // P9
-        {"mcasp0_aclkx", 0x0d}, // ctrl_en
-        {"mcasp0_fsx", 0x0d}, // ahi_en
-        {"mcasp0_axr0", 0x0d}, // dataout_en
-        {"mcasp0_ahclkr", 0x0d}, // datain_en
-        {"mcasp0_fsr", 0x0d}, // alo_en
-        {"mcasp0_ahclkx", 0x2e}, // ref
+        {"mcasp0_aclkx", 0x0d}, // alo_en (pru0_r30[00])
+        {"mcasp0_fsx", 0x0d}, // ahi_en (pru0_r30[01])
+        {"mcasp0_axr0", 0x0d}, // dataout_en (pru0_r30[02])
+        {"mcasp0_ahclkr", 0x0d}, // datain_en (pru0_r30[03])
+        {"mcasp0_fsr", 0x0d}, // extsel (pru0_r30[05])
+        {"mcasp0_ahclkx", 0x2e}, // ref (pru0_r31[07])
+        {"uart1_rxd", 0x0f}, // ctrl_en (GPIO0_14)
 
         {0, 0},
     };
@@ -172,6 +173,7 @@ int main (int argc, char **argv)
 CLEANUP:
     /* Disable PRU and close memory mapping*/
     printf("INFO: Cleaning up.\n");
+    mux("uart1_rxd", 0x37);
     prussdrv_pru_disable(PRU_NUM0);
     prussdrv_pru_disable(PRU_NUM1);
     prussdrv_exit ();

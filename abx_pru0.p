@@ -66,11 +66,11 @@
 #define localdata2 c25
 #define shared c28
 
-#define ALO_EN 0b011110
-#define AHI_EN 0b011101
-#define DATAOUT_EN 0b011011
-#define DATAIN_EN 0b010111
-#define CTRL_EN 0b011111
+#define ALO_EN 0b111110
+#define AHI_EN 0b111101
+#define DATAOUT_EN 0b111011
+#define DATAIN_EN 0b110111
+#define EXTSEL 0b011111
 
     mov num_zero, 0
 
@@ -133,29 +133,34 @@ clear:
 .endm
 
 .macro ENABLE_BUFFERS
-//    // Clear ABX_OE (GPIO1_31) value
-//    mov r0, GPIO1 | GPIO_CLEARDATAOUT
-//    mov r1, 1<<31
-//    sbbo r1, r0, 0, 4
-//
-//    // Clear ABX_OE (GPIO1_31) output enable
-//    mov r0, GPIO1 | GPIO_OE
-//    lbbo r1, r0, 0, 4
-//    clr r1, 31
-//    sbbo r1, r0, 0, 4
+    // Clear ABX_CTRL_EN (GPIO0_14) value
+    mov r0, GPIO0 | GPIO_CLEARDATAOUT
+    mov r1, 1<<14
+    sbbo r1, r0, 0, 4
+
+    // Clear ABX_CTRL_EN (GPIO0_14) output enable
+    mov r0, GPIO0 | GPIO_OE
+    lbbo r1, r0, 0, 4
+    clr r1, 31
+    sbbo r1, r0, 0, 4
 .endm
 
 .macro DISABLE_BUFFERS
-//    // Set ABX_OE (GPIO1_31) value
-//    mov r0, GPIO1 | GPIO_SETDATAOUT
-//    mov r1, 1<<31
-//    sbbo r1, r0, 0, 4
-//
-//    // Clear ABX_OE (GPIO1_31) output enable
-//    mov r0, GPIO1 | GPIO_OE
-//    lbbo r1, r0, 0, 4
-//    clr r1, 31
-//    sbbo r1, r0, 0, 4
+    // Set ABX_CTRL_EN (GPIO0_14) value
+    mov r0, GPIO0 | GPIO_SETDATAOUT
+    mov r1, 1<<14
+    sbbo r1, r0, 0, 4
+
+    // Clear ABX_CTRL_EN (GPIO0_14) output enable
+    mov r0, GPIO0 | GPIO_OE
+    lbbo r1, r0, 0, 4
+    clr r1, 31
+    sbbo r1, r0, 0, 4
+
+    // Set ABX_ALO_EN
+    // Set ABX_AHI_EN
+    // Set ABX_DATAOUT_EN
+    // Set ABX_DATAIN_EN
     mov r30, 0xffffffff
 .endm
 
@@ -338,26 +343,30 @@ capture:
 
     wbc r31, 15
     wbs r31, 15
-    lsr r0.b3, r31.b0, 7
-    add r0.b3, r0.b3, r31.b1
+//    wbs r31, 15
+//    wbc r31, 15
+//    EN_DELAY
+//    EN_DELAY
+//    EN_DELAY
+//    EN_DELAY
+//    EN_DELAY
+//    EN_DELAY
+//    EN_DELAY
+//    EN_DELAY
     lbbo r0.b0, pru1_r31, 0, 1
     ldi r30, AHI_EN
+    lsr r0.b3, r31.b0, 7
+    or r0.b3, r0.b3, r31.b1
     EN_DELAY
     lbbo r0.b1, pru1_r31, 0, 1
     ldi r30, DATAIN_EN
-    //EN_DELAY
-    lbbo r1, ddr, 0, 1
+    EN_DELAY
+    //lbbo r1, ddr, 0, 1
     lbbo r0.b2, pru1_r31, 0, 1
     ldi r30, ALO_EN
 
     sbbo r0, capture_addr, 0, 4
     //sbbo r0.b2, ddr, r0.w0, 1
-
-//    mov r1, 0x1
-//    mov r0, 0
-//capdelay:
-//    sub r1, r1, 1
-//    qbne capdelay, r1, r0
 
     add capture_addr, capture_addr, 4
     qblt capture, r2, capture_addr
