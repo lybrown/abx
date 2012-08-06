@@ -39,6 +39,7 @@ all: $(TARGET)
 
 test: all
 	scp $(TARGET) bone:x/abx
+	scp disable_abx bone:/usr/bin
 	ssh root@bone "trap disable_abx SIGHUP EXIT; cd ~lybrown/x/abx; time ./abx"
 
 abx_pru0_bin.h abx_pru1_bin.h: pru.hp

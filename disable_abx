@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Set EN pins to input pullup in order to 
+# initially disable ABX and prevent contention
+
+pin() {
+    name=$1
+    bank=$2
+    bit=$3
+    dir=$4
+    value=$5
+    mux=$6
+    abx=$7
+    index=$(($bank*32+$bit))
+    echo -n " $abx"
+    echo $index > /sys/class/gpio/export
+    echo $dir > /sys/class/gpio/gpio$index/direction
+    if [[ $dir = out ]]; then
+        echo $value > /sys/class/gpio/gpio$index/value
+    fi
+    echo $index > /sys/class/gpio/unexport
+    echo $mux > /sys/kernel/debug/omap_mux/$name
+}
+
+in="in"
+out="out"
+in_pullup=37
+in_nopull=2f
+
+echo -n "Disabling ABX:"
+
+# P9
+#	Pin name	Bank	Bit	Dir	Value	Mux		ABX
+pin	mcasp0_aclkx	3	15	$in	1	$in_pullup	ahi_en
+pin	mcasp0_fsx	3	14	$in	1	$in_pullup	alo_en
+pin	uart1_rxd	0	14	$in	1	$in_pullup	ctrl_en
+pin	mcasp0_ahclkr	3	17	$in	1	$in_pullup	datain_en
+pin	mcasp0_axr0	3	16	$in	1	$in_pullup	dataout_en
+pin	mcasp0_fsr	3	19	$in	1	$in_pullup	extsel
+pin	mcasp0_ahclkx	3	21	$in	1	$in_nopull	ref
+pin	xdma_event_intr1 0	20	$in	1	$in_pullup	reset
+
+# P8
+#	Pin name	Bank	Bit	Dir	Value	Mux		ABX
+pin	lcd_data0	2	6	$in	1	$in_nopull	i0
+pin	lcd_data1	2	7	$in	1	$in_nopull	i1
+pin	lcd_data2	2	8	$in	1	$in_nopull	i2
+pin	lcd_data3	2	9	$in	1	$in_nopull	i3
+pin	lcd_data4	2	10	$in	1	$in_nopull	i4
+pin	lcd_data5	2	11	$in	1	$in_nopull	i5
+pin	lcd_data6	2	12	$in	1	$in_nopull	i6
+pin	lcd_data7	2	13	$in	1	$in_nopull	i7
+pin	lcd_vsync	2	22	$in	1	$in_nopull	o0
+pin	lcd_hsync	2	23	$in	1	$in_nopull	o1
+pin	lcd_pclk	2	24	$in	1	$in_nopull	o2
+pin	lcd_ac_bias_en	2	25	$in	1	$in_nopull	o3
+pin	gpmc_csn1	1	30	$in	1	$in_nopull	o4
+pin	gpmc_csn2	1	31	$in	1	$in_nopull	o5
+pin	gpmc_ad12	1	12	$in	1	$in_nopull	o6
+pin	gpmc_ad13	1	13	$in	1	$in_nopull	o7
+pin	gpmc_ad15	1	15	$in	1	$in_nopull	phi2
+pin	gpmc_ad14	1	14	$in	1	$in_nopull	rw
+
+echo; echo "Done"

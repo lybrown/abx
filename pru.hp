@@ -326,6 +326,19 @@
     SBBO src,dst,#0x00,1
 .endm
 
+.macro POKE
+.mparam addr, value
+    mov r0, value
+    mov r1, addr
+    sbbo r0, r1, 0, 4
+.endm
+
+.macro PEEK
+.mparam addr
+    mov r1, addr
+    lbbo r0, r1, 0, 4
+.endm
+
 #define GPIO0 0x44e07000
 #define GPIO1 0x4804c000
 #define GPIO2 0x481ac000
