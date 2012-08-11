@@ -31,14 +31,15 @@ echo -n "Disabling ABX:"
 
 # P9
 #	Pin name	Bank	Bit	Dir	Value	Mux		ABX
-pin	mcasp0_aclkx	3	15	$in	1	$in_pullup	ahi_en
-pin	mcasp0_fsx	3	14	$in	1	$in_pullup	alo_en
+pin	mcasp0_aclkx	3	15	$in	1	$in_pullup	alo_en
+pin	mcasp0_fsx	3	14	$in	1	$in_pullup	ahi_en
 pin	uart1_rxd	0	14	$in	1	$in_pullup	ctrl_en
 pin	mcasp0_ahclkr	3	17	$in	1	$in_pullup	datain_en
 pin	mcasp0_axr0	3	16	$in	1	$in_pullup	dataout_en
 pin	mcasp0_fsr	3	19	$in	1	$in_pullup	extsel
 pin	mcasp0_ahclkx	3	21	$in	1	$in_nopull	ref
 pin	xdma_event_intr1 0	20	$in	1	$in_pullup	reset
+pin	uart1_txd	0	15	$in	1	$in_pullup	reset
 
 # P8
 #	Pin name	Bank	Bit	Dir	Value	Mux		ABX

@@ -105,13 +105,15 @@ int main (int argc, char **argv)
         {"gpmc_ad15", 0x2e}, // phi2
         {"gpmc_ad14", 0x2e}, // rw
         // P9
-        {"mcasp0_aclkx", 0x0d}, // alo_en (pru0_r30[00])
-        {"mcasp0_fsx", 0x0d}, // ahi_en (pru0_r30[01])
+        {"mcasp0_aclkx", 0x0d}, // ahi_en (pru0_r30[00])
+        {"mcasp0_fsx", 0x0d}, // alo_en (pru0_r30[01])
         {"mcasp0_axr0", 0x0d}, // dataout_en (pru0_r30[02])
         {"mcasp0_ahclkr", 0x0d}, // datain_en (pru0_r30[03])
         {"mcasp0_fsr", 0x0d}, // extsel (pru0_r30[05])
         {"mcasp0_ahclkx", 0x2e}, // ref (pru0_r31[07])
         {"uart1_rxd", 0x0f}, // ctrl_en (GPIO0_14)
+        {"xdma_event_intr1", 0x2d}, // reset (pru0_r31[16])
+        {"uart1_txd", 0x2f}, // reset (pru0_r31[16])
 
         {0, 0},
     };
@@ -160,13 +162,18 @@ int main (int argc, char **argv)
     printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n",
         read_addr, read_offs, (unsigned long)ddrMem);
     int i;
-    for (i = 0; i < 0x200; ++i) {
-        char* rd = (char*)(ddrMem + read_offs + i);
-        printf("0x%02x", *rd);
-        if (i % 4 == 3) {
-            printf("\n");
-        } else { 
+    const int stride = 16;
+    char* rd = (char*)(ddrMem + read_offs);
+    printf("%08X: ", (unsigned)read_addr);
+    for (i = 0; i < 0x300; ++i) {
+        rd = (char*)(ddrMem + read_offs + i);
+        printf("%02X", (unsigned)*rd);
+        if (i % stride == stride - 1) {
+            printf("\n%08X: ", (unsigned)(read_addr + i + 1));
+        } else if (i % 4 == 3) { 
             printf(", ");
+        } else { 
+            printf(" ");
         }
     }
 

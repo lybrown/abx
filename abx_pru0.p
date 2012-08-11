@@ -10,23 +10,28 @@
 #define ddr r26
 #define pru1_r30 r27
 #define pru1_r31 r28
-#define jumptable r29
 #define localdata0 c24
 #define localdata2 c25
 #define shared_minus_16k c28
-#define ALO_EN 0b111110
-#define AHI_EN 0b111101
+#define AHI_EN 0b111110
+#define ALO_EN 0b111101
 #define DATAOUT_EN 0b111011
 #define DATAIN_EN 0b110111
 #define EXTSEL 0b011111
-.macro CLEAR_DDR_MEMORY
+#define REF_BIT 7
+#define RW_BIT 14
+#define PHI2_BIT 15
+#define RESET_BIT 16
+#define TRUE 1
+.macro CLEAR_MEMORY
+.mparam from, to
     zero &r2, 32
-    mov r0, 0x8c000000
-    mov r1, 0x90000000
+    mov r0, from
+    mov r1, to
 clear:
     sbbo r2, r0, 0, 32
     add r0, r0, 32
-    qblt clear, r1, r0
+    qble clear, r1, r0
 .endm
 .macro ENABLE_BUFFERS
     // Clear ABX_CTRL_EN (GPIO0_14) value
@@ -72,6 +77,14 @@ clear:
     NOP
     NOP
 .endm
+.macro DELAY
+.mparam count
+    mov r0, 0
+    mov r1, count
+loop:
+    add r0, r0, 1
+    qbne loop, r0, r1
+.endm
 abx_pru0:
     // Clear syscfg[standby_init] to enable ocp master port
     lbco r0, CONST_PRUCFG, 4, 4
@@ -91,28 +104,57 @@ abx_pru0:
     POKE CTBIR_0, 0
     // Point c28 at 0x00nnnn00, Shared PRU RAM (shared_minus_16k)
     POKE CTPPR_0, 0x100-0x40
-    CLEAR_DDR_MEMORY
+    //CLEAR_MEMORY 0x8c000000, 0x8fffffff
+    CLEAR_MEMORY 0, 0x1ffff
     ENABLE_BUFFERS
     ldi r30, AHI_EN
+    DELAY 0x10000000
+    //wbs r31, RESET_BIT // RESET
+    //QUIT
+#ifdef TRUE
+    mov r4, 0
+    mov r5, 0x2000000
+    mov r1, 0
+    mov r6, 0
+capture:
+    qbbc quit, r31, RESET_BIT // RESET
+    wbc r31, PHI2_BIT
+    wbs r31, PHI2_BIT // PHI2 rising edge
+    lbbo r1.b1, pru1_r31, 0, 1 // AHI
+    ldi r30, ALO_EN
+    EN_DELAY
+    lbbo r1.b0, pru1_r31, 0, 1 // ALO
+    ldi r30, DATAIN_EN
+    EN_DELAY
+    lbbo r6.b0, pru1_r31, 0, 1 // DATAIN
+    ldi r30, AHI_EN
+    //sbbo r1, r4, 0, 4
+    sbbo r6.b0, r1, 0, 1
+    add r4, r4, 4
+    //qblt capture, r5, r4
+    jmp capture
+    jmp quit
+#endif
 mem:
-    qbbc quit, r31, 16 // RESET
-    wbc r31, 15
-    wbs r31, 15 // PHI2 rising edge
+    qbbc quit, r31, RESET_BIT // RESET
+    wbc r31, PHI2_BIT
+    wbs r31, PHI2_BIT // PHI2 rising edge
     lbbo r1.b1, pru1_r31, 0, 1 // AHI
     ldi r30, ALO_EN
     NOP
-    qbge mem, r1.b1, 0x70 // Ignore high mem
-    qbge mem40_6f, r1.b1, 0x40 // Dispatch
+    qble mem, r1.b1, 0x70 // Ignore high mem
+    qble mem40_6f, r1.b1, 0x40 // Dispatch
 .macro MEM_MACRO
 .mparam membase
-    qbbc mem, r31, 7 // Ignore REF cycles
-    qbbs read, r31, 14 // RW
+    qbbc mem, r31, REF_BIT // Ignore REF cycles
+    qbbs read, r31, RW_BIT // RW
 write:
     lbbo r1.b0, pru1_r31, 0, 1 // ALO
     ldi r30, DATAIN_EN
     EN_DELAY
-    lbbo r3, pru1_r31, 0, 1 // DATAIN
+    lbbo r3, pru1_r31, 0, 4 // DATAIN
     sbco r3, membase, r1.w0, 1
+    ldi r30, AHI_EN
     jmp mem
 read:
     lbbo r1.b0, pru1_r31, 0, 1 // ALO
@@ -128,11 +170,12 @@ mem00_3f:
 mem40_6f:
     MEM_MACRO shared_minus_16k
 quit:
-    mov r1, 0
-    mov r2, 0x20000
+    mov r0, 0
+    mov r1, 0x20000
 copy:
-    lbbo r0, r1, 0, 4
-    sbbo r0, ddr, r1, 4
-    add r1, r1, 4
-    qblt copy, r2, r1
+#define STRIDE 32
+    lbbo r2, r0, 0, STRIDE
+    sbbo r2, ddr, r0, STRIDE
+    add r0, r0, STRIDE
+    qblt copy, r1, r0
     QUIT

@@ -37,10 +37,11 @@ $(OBJDIR)/%.o: %.c $(DEPS)
 
 all: $(TARGET)
 
+copy_disable_abx:
+	scp disable_abx root@bone:/usr/bin
 test: all
-	scp $(TARGET) bone:x/abx
-	scp disable_abx bone:/usr/bin
-	ssh root@bone "trap disable_abx SIGHUP EXIT; cd ~lybrown/x/abx; time ./abx"
+	scp $(TARGET) bone:/dev/shm
+	ssh root@bone "trap disable_abx SIGHUP EXIT; cd /dev/shm; time ./abx"
 
 abx_pru0_bin.h abx_pru1_bin.h: pru.hp
 
