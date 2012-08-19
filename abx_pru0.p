@@ -112,11 +112,26 @@ abx_pru0:
     POKE CTPPR_0, 0x100-0x40
     CLEAR_MEMORY 0x8c000000, 0x8fffffff
     CLEAR_MEMORY 0, 0x1ffff
+    // Put rainbow ML routine in RAM
+    mov r4, 0
+    POKE r4, 0x8d00a978
+    add r4, r4, 4
+    POKE r4, 0x0e8dd20e
+    add r4, r4, 4
+    POKE r4, 0xd40a8ed4
+    add r4, r4, 4
+    POKE r4, 0xe8d01a8e
+    add r4, r4, 4
+    POKE r4, 0xd40bade8
+    add r4, r4, 4
+    POKE r4, 0x9888f3d0
+    add r4, r4, 4
+    POKE r4, 0xd40a8eaa
+    add r4, r4, 4
+    POKE r4, 0x0000eb50
     ENABLE_BUFFERS
     ldi r30, AHI_EN
     DELAY 0x10000000
-    //wbs r31, RESET_BIT // RESET
-    //QUIT
 //#define SIMPLE 1
 //#define CAPTURE 1
 #ifdef SIMPLE
@@ -150,9 +165,9 @@ capture:
 mem:
     qbbc quit, r31, RESET_BIT // RESET
     wbc r31, PHI2_BIT
-    DATAOUT_DELAY
-    DATAOUT_DELAY
-    DATAOUT_DELAY
+    //DATAOUT_DELAY
+    //DATAOUT_DELAY
+    //DATAOUT_DELAY
     ldi r30, AHI_EN
     wbs r31, PHI2_BIT // PHI2 rising edge
     lbbo r1.b1, pru1_r31, 0, 1 // AHI
@@ -160,7 +175,9 @@ mem:
     NOP
 #define D5XX
 #ifdef D5XX
-    qbne mem, r1.b1, 0xd5 // Only respond to D5XX
+    //qbne mem, r1.b1, 0x40 // Only respond to D5XX
+    BLT mem, r1.b1, 0x40
+    BGT mem, r1.b1, 0x4f
 #else
     qble mem, r1.b1, 0x70 // Ignore high mem
     qble mem40_6f, r1.b1, 0x40 // Dispatch
