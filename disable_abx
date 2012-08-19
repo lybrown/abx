@@ -24,8 +24,8 @@ pin() {
 
 in="in"
 out="out"
-in_pullup=37
-in_nopull=2f
+in_pullup="37"
+in_nopull="2f"
 
 echo -n "Disabling ABX:"
 
@@ -38,8 +38,8 @@ pin	mcasp0_ahclkr	3	17	$in	1	$in_pullup	datain_en
 pin	mcasp0_axr0	3	16	$in	1	$in_pullup	dataout_en
 pin	mcasp0_fsr	3	19	$in	1	$in_pullup	extsel
 pin	mcasp0_ahclkx	3	21	$in	1	$in_nopull	ref
-pin	xdma_event_intr1 0	20	$in	1	$in_pullup	reset
-pin	uart1_txd	0	15	$in	1	$in_pullup	reset
+pin	xdma_event_intr1 0	20	$in	1	$in_nopull	reset
+pin	uart1_txd	0	15	$in	1	$in_nopull	reset
 
 # P8
 #	Pin name	Bank	Bit	Dir	Value	Mux		ABX

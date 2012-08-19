@@ -171,7 +171,7 @@ int main (int argc, char **argv)
         if (i % stride == stride - 1) {
             printf("\n%08X: ", (unsigned)(read_addr + i + 1));
         } else if (i % 4 == 3) { 
-            printf(", ");
+            printf("  ");
         } else { 
             printf(" ");
         }

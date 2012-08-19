@@ -15,14 +15,13 @@
 #define shared_minus_16k c28
 #define AHI_EN 0b111110
 #define ALO_EN 0b111101
-#define DATAOUT_EN 0b111011
+#define DATAOUT_EN 0b011011 // also asserts EXTSEL
 #define DATAIN_EN 0b110111
-#define EXTSEL 0b011111
+#define EXTSEL_BIT 5
 #define REF_BIT 7
 #define RW_BIT 14
 #define PHI2_BIT 15
 #define RESET_BIT 16
-#define TRUE 1
 .macro CLEAR_MEMORY
 .mparam from, to
     zero &r2, 32
@@ -77,6 +76,13 @@ clear:
     NOP
     NOP
 .endm
+.macro DATAOUT_DELAY
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+.endm
 .macro DELAY
 .mparam count
     mov r0, 0
@@ -104,16 +110,18 @@ abx_pru0:
     POKE CTBIR_0, 0
     // Point c28 at 0x00nnnn00, Shared PRU RAM (shared_minus_16k)
     POKE CTPPR_0, 0x100-0x40
-    //CLEAR_MEMORY 0x8c000000, 0x8fffffff
+    CLEAR_MEMORY 0x8c000000, 0x8fffffff
     CLEAR_MEMORY 0, 0x1ffff
     ENABLE_BUFFERS
     ldi r30, AHI_EN
     DELAY 0x10000000
     //wbs r31, RESET_BIT // RESET
     //QUIT
-#ifdef TRUE
+//#define SIMPLE 1
+//#define CAPTURE 1
+#ifdef SIMPLE
     mov r4, 0
-    mov r5, 0x2000000
+    mov r5, 0x2000
     mov r1, 0
     mov r6, 0
 capture:
@@ -126,24 +134,37 @@ capture:
     lbbo r1.b0, pru1_r31, 0, 1 // ALO
     ldi r30, DATAIN_EN
     EN_DELAY
-    lbbo r6.b0, pru1_r31, 0, 1 // DATAIN
+    lbbo r1.b2, pru1_r31, 0, 1 // DATAIN
     ldi r30, AHI_EN
-    //sbbo r1, r4, 0, 4
-    sbbo r6.b0, r1, 0, 1
+#ifdef CAPTURE
+    mov r1.b3, r31.b0
+    sbbo r1, r4, 0, 4
     add r4, r4, 4
-    //qblt capture, r5, r4
+    qblt capture, r5, r4
+#else
+    sbbo r1.b2, 0, r1.w0, 1
     jmp capture
+#endif
     jmp quit
 #endif
 mem:
     qbbc quit, r31, RESET_BIT // RESET
     wbc r31, PHI2_BIT
+    DATAOUT_DELAY
+    DATAOUT_DELAY
+    DATAOUT_DELAY
+    ldi r30, AHI_EN
     wbs r31, PHI2_BIT // PHI2 rising edge
     lbbo r1.b1, pru1_r31, 0, 1 // AHI
     ldi r30, ALO_EN
     NOP
+#define D5XX
+#ifdef D5XX
+    qbne mem, r1.b1, 0xd5 // Only respond to D5XX
+#else
     qble mem, r1.b1, 0x70 // Ignore high mem
     qble mem40_6f, r1.b1, 0x40 // Dispatch
+#endif
 .macro MEM_MACRO
 .mparam membase
     qbbc mem, r31, REF_BIT // Ignore REF cycles
@@ -153,16 +174,29 @@ write:
     ldi r30, DATAIN_EN
     EN_DELAY
     lbbo r3, pru1_r31, 0, 4 // DATAIN
+#ifdef MARK
+    sbco pru1_r30.b0, membase, r1.w0, 1
+#else
+#ifdef D5XX
+    sbco r3, membase, r1.b0, 1
+#else
     sbco r3, membase, r1.w0, 1
-    ldi r30, AHI_EN
+#endif
+#endif
     jmp mem
 read:
     lbbo r1.b0, pru1_r31, 0, 1 // ALO
-    //ldi r30, DATAOUT_EN
+    ldi r30, DATAOUT_EN
+#ifdef D5XX
+    lbco r3.b1, membase, r1.b0, 1
+#else
     lbco r3.b1, membase, r1.w0, 1
+#endif
     sbbo r3, pru1_r30, 0, 2 // DATAOUT
     mov r30.b1, r3.b1 // DATAOUT
-    ldi r30, AHI_EN
+#ifdef MARK
+    sbco ddr.b3, membase, r1.w0, 1
+#endif
     jmp mem
 .endm
 mem00_3f:
