@@ -111,24 +111,24 @@ abx_pru0:
     // Point c28 at 0x00nnnn00, Shared PRU RAM (shared_minus_16k)
     POKE CTPPR_0, 0x100-0x40
     CLEAR_MEMORY 0x8c000000, 0x8fffffff
-    CLEAR_MEMORY 0, 0x1ffff
-    // Put rainbow ML routine in RAM
-    mov r4, 0
-    POKE r4, 0x8d00a978
-    add r4, r4, 4
-    POKE r4, 0x0e8dd20e
-    add r4, r4, 4
-    POKE r4, 0xd40a8ed4
-    add r4, r4, 4
-    POKE r4, 0xe8d01a8e
-    add r4, r4, 4
-    POKE r4, 0xd40bade8
-    add r4, r4, 4
-    POKE r4, 0x9888f3d0
-    add r4, r4, 4
-    POKE r4, 0xd40a8eaa
-    add r4, r4, 4
-    POKE r4, 0x0000eb50
+//    CLEAR_MEMORY 0, 0x1ffff
+//    // Put rainbow ML routine in RAM
+//    mov r4, 0
+//    POKE r4, 0x8d00a978
+//    add r4, r4, 4
+//    POKE r4, 0x0e8dd20e
+//    add r4, r4, 4
+//    POKE r4, 0xd40a8ed4
+//    add r4, r4, 4
+//    POKE r4, 0xe8d01a8e
+//    add r4, r4, 4
+//    POKE r4, 0xd40bade8
+//    add r4, r4, 4
+//    POKE r4, 0x9888f3d0
+//    add r4, r4, 4
+//    POKE r4, 0xd40a8eaa
+//    add r4, r4, 4
+//    POKE r4, 0x0000eb50
     ENABLE_BUFFERS
     ldi r30, AHI_EN
     DELAY 0x10000000
@@ -175,9 +175,10 @@ mem:
     NOP
 #define D5XX
 #ifdef D5XX
-    //qbne mem, r1.b1, 0x40 // Only respond to D5XX
+    //qbne mem, r1.b1, 0xd5 // Only respond to D5XX
+    //qbne mem, r1.b1, 0x00 // Only respond to D5XX
     BLT mem, r1.b1, 0x40
-    BGT mem, r1.b1, 0x4f
+    BGT mem, r1.b1, 0x5f
 #else
     qble mem, r1.b1, 0x70 // Ignore high mem
     qble mem40_6f, r1.b1, 0x40 // Dispatch
@@ -195,17 +196,17 @@ write:
     sbco pru1_r30.b0, membase, r1.w0, 1
 #else
 #ifdef D5XX
-    sbco r3, membase, r1.b0, 1
+    sbco r3, membase, r1.w0, 1
 #else
     sbco r3, membase, r1.w0, 1
 #endif
 #endif
     jmp mem
 read:
-    lbbo r1.b0, pru1_r31, 0, 1 // ALO
     ldi r30, DATAOUT_EN
+    lbbo r1.b0, pru1_r31, 0, 1 // ALO
 #ifdef D5XX
-    lbco r3.b1, membase, r1.b0, 1
+    lbco r3.b1, membase, r1.w0, 1
 #else
     lbco r3.b1, membase, r1.w0, 1
 #endif
@@ -216,17 +217,18 @@ read:
 #endif
     jmp mem
 .endm
-mem00_3f:
-    MEM_MACRO localdata0
 mem40_6f:
     MEM_MACRO shared_minus_16k
+mem00_3f:
+    MEM_MACRO localdata0
 quit:
-    mov r0, 0
+    mov r0, 0x10000
     mov r1, 0x20000
+    mov r2, 0
 copy:
 #define STRIDE 32
-    lbbo r2, r0, 0, STRIDE
-    sbbo r2, ddr, r0, STRIDE
-    add r0, r0, STRIDE
-    qblt copy, r1, r0
+    lbbo r4, r0, r2, STRIDE
+    sbbo r4, ddr, r2, STRIDE
+    add r2, r2, STRIDE
+    qblt copy, r1, r2
     QUIT

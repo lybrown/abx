@@ -48,7 +48,10 @@ abx_pru0_bin.h abx_pru1_bin.h: pru.hp
 abx_jumptable.h: abx_jumptable.pl
 	./$< > $@~ && mv $@~ $@
 
-abx.o: abx_pru0_bin.h abx_pru1_bin.h abx_jumptable.h
+ribbon.h:
+	bin2h ribbon.obx | perl -pe 's/data/ribbon/' > ribbon.h
+
+abx.o: abx_pru0_bin.h abx_pru1_bin.h abx_jumptable.h ribbon.h
 
 $(TARGET): $(OBJ)
 	$(CROSS_COMPILE)gcc $(CFLAGS) -o $@ $^ $(LDFLAGS)

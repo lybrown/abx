@@ -12,6 +12,7 @@
 #include "abx_pru0_bin.h"
 #include "abx_pru1_bin.h"
 #include "abx_jumptable.h"
+#include "ribbon.h"
 
 #define DDR_BASEADDR 0x80000000
 
@@ -133,7 +134,8 @@ int main (int argc, char **argv)
     prussdrv_pru_disable(PRU_NUM1);
     prussdrv_pru_write_memory(PRUSS0_PRU0_IRAM, 0, abx_pru0, sizeof(abx_pru0));
     prussdrv_pru_write_memory(PRUSS0_PRU1_IRAM, 0, abx_pru1, sizeof(abx_pru1));
-    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0x1800, abx_pru0, sizeof(abx_pru1));
+    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0, ribbon, sizeof(ribbon));
+    prussdrv_pru_write_memory(PRUSS0_SHARED_DATARAM, 0, ribbon, sizeof(ribbon));
     //prussdrv_pru_enable(PRU_NUM1);
     prussdrv_pru_enable(PRU_NUM0);
 
