@@ -40,7 +40,7 @@ all: $(TARGET)
 copy_disable_abx:
 	scp disable_abx root@bone:/usr/bin
 test: all
-	scp $(TARGET) bone:/dev/shm
+	scp $(TARGET) app.mem bone:/dev/shm
 	ssh root@bone "trap disable_abx SIGHUP EXIT; cd /dev/shm; time ./abx"
 
 abx_pru0_bin.h abx_pru1_bin.h: pru.hp

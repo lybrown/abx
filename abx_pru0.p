@@ -1,7 +1,7 @@
 // Atari XL PBI to Beaglebone memory expansion
 // Convention:
-//  r0-r15 are temp registers
-//  r16-r29 are variables
+//  r0-r19 are temp registers
+//  r18-r29 are variables
 //  r30 is output register
 //  r31 is input register
 .origin 0
@@ -14,6 +14,7 @@
 #define pru1_r31 r28
 #define localdata0 c24
 #define localdata2 c25
+#define shared c28
 #define AHI_EN 0b111110
 #define ALO_EN 0b111101
 #define DATAOUT_EN 0b011011 // also asserts EXTSEL
@@ -109,12 +110,12 @@ abx_pru0:
     // Point c24 at 0x00000n00, PRU0 Local Data RAM (localdata0)
     // Point c25 at 0x00002n00, PRU1 Local Data RAM (localdata1)
     POKE CTBIR_0, 0
-    // Point c28 at 0x00nnnn00, Shared PRU RAM (shared_minus_32k)
-    POKE CTPPR_0, 0x100-0x80
+    // Point c28 at 0x00nnnn00, Shared PRU RAM
+    POKE CTPPR_0, 0x100
     // Initialize localdata_minus_16k
     mov localdata_minus_16k, 0-0x4000
     // Initialize shared_minus_32k
-    mov shared_minus_32k, 0x10000-0x4000
+    mov shared_minus_32k, 0x10000-0x8000
     CLEAR_MEMORY 0x8c000000, 0x8fffffff
 //    CLEAR_MEMORY 0, 0x1ffff
 //    // Put rainbow ML routine in RAM
@@ -177,12 +178,24 @@ mem:
     wbs r31, PHI2_BIT // PHI2 rising edge
     lbbo r1.b1, pru1_r31, 0, 1 // AHI
     ldi r30, ALO_EN
-    NOP
-    BGE mem, r1.b1, 0x80 // Ignore high mem
-    BLT mem, r1.b1, 0x40 // Ignore low mem
+
+    // Branch tree:
+    // 0x00 - 0x3F RAM
+    // 0x40 - 0x4F RAM
+    // 0x50 - 0x57 RAM / SELFTEST
+    // 0x58 - 0xA0 RAM
+    // 0xA0 - 0xBF RAM / BASIC
+    // 0xC0 - 0xD0 RAM / ROM
+    // 0xD0 - 0xD8 HARDWARE
+    // 0xD8 - 0xFF RAM / ROM
+
+    qbbc mem, r31, REF_BIT // Ignore REF cycles
+    BLT mem, r1.b1, 0x40 // Ignore low mem < 0x40
+    //BGE memA0_FF, r1.b1, 0xA0 // >= 0xA0
+    BGE mem, r1.b1, 0xA0 // >= 0xA0
+    BGE mem80_A0, r1.b1, 0x80 // 0x40 <= ahi < 0x80
 .macro MEM_MACRO
 .mparam membase
-    qbbc mem, r31, REF_BIT // Ignore REF cycles
     qbbs read, r31, RW_BIT // RW
 write:
     lbbo r1.b0, pru1_r31, 0, 1 // ALO
@@ -199,10 +212,39 @@ read:
     mov r30.b1, r3.b1 // DATAOUT
     jmp mem
 .endm
-mem00_3f:
+mem40_80:
     MEM_MACRO localdata_minus_16k
-mem40_6f:
+mem80_A0:
     MEM_MACRO shared_minus_32k
+memA0_FF:
+    qbbs mem, r31, RW_BIT // RW
+    qbne mem, r1.b1, 0xD7 // ahi != 0xD7
+memD7:
+    // Blit new bank into 24K region from 0x4000 - 0xA000
+    lbbo r3.b1, pru1_r31, 0, 1 // ALO
+    ldi r30, DATAIN_EN
+    EN_DELAY
+    lbbo r3.b0, pru1_r31, 0, 4 // DATAIN
+    lsl r2, r3, 13 // Multiply by 24K
+    lsl r3, r3, 12
+    add r3, r3, r2
+    add r3, r3, ddr // Add to ddr base
+    mov r0, 0
+    mov r1, 0x4000
+blit1:
+    lbbo r4, r3, r0, 64
+    sbco r4, localdata0, r0, 64
+    add r0, r0, 64
+    BLE blit1, r0, r1
+    add r3, r3, r1
+    mov r0, 0
+    mov r1, 0x2000
+blit2:
+    lbbo r4, r3, r0, 64
+    sbco r4, shared, r0, 64
+    add r0, r0, 64
+    BLE blit2, r0, r1
+    jmp mem
 quit:
     mov r0, 0x10000
     mov r1, 0x20000

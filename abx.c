@@ -11,10 +11,11 @@
 #include "pruss_intc_mapping.h"
 #include "abx_pru0_bin.h"
 #include "abx_pru1_bin.h"
-#include "abx_jumptable.h"
-#include "ribbon.h"
+//#include "abx_jumptable.h"
 
 #define DDR_BASEADDR 0x80000000
+#define DDR_RESERVED 0x8C000000
+#define DDR_RES_SIZE 0x03FFFFFF
 
 int mux(char *name, int val)
 {
@@ -52,6 +53,39 @@ int main (int argc, char **argv)
     static int mem_fd = 0;
     static void *ddrMem = 0;
     static void *sharedMem = 0;
+    static FILE *app_fd = 0;
+
+    app_fd = fopen("app.mem", "r");
+    if (app_fd == 0) {
+        printf("ERROR: Failed to open app.mem (%s)\n", strerror(errno));
+        goto CLEANUP;
+    }
+
+    /* open the device */
+    mem_fd = open("/dev/mem", O_RDWR);
+    if (mem_fd < 0) {
+        printf("ERROR: Failed to open /dev/mem (%s)\n", strerror(errno));
+        goto CLEANUP;
+    }
+
+    /* map the DDR memory */
+    ddrMem = mmap(0, DDR_RES_SIZE, PROT_WRITE | PROT_READ, MAP_SHARED, mem_fd, DDR_RESERVED);
+    if (ddrMem == NULL) {
+        printf("ERROR: Failed to map the device (%s)\n", strerror(errno));
+        goto CLEANUP;
+    }
+
+    size_t count = fread(ddrMem, 1, 256*1024*1024, app_fd);
+    printf("INFO: Read %u bytes from app.mem\n", count);
+    static unsigned int first[(0x4000+0x2000)/sizeof(int)];
+    memcpy(first, ddrMem, 0x6000);
+
+    munmap(ddrMem, DDR_RES_SIZE);
+    ddrMem = 0;
+    close(mem_fd);
+    mem_fd = 0;
+    fclose(app_fd);
+    app_fd = 0;
 
     struct MUX { char *name; int val; } muxes[] = {
 //        // GPIO1
@@ -119,13 +153,6 @@ int main (int argc, char **argv)
         {0, 0},
     };
 
-    /* open the device */
-    mem_fd = open("/dev/mem", O_RDWR);
-    if (mem_fd < 0) {
-        printf("ERROR: Failed to open /dev/mem (%s)\n", strerror(errno));
-        goto CLEANUP;
-    }
-
     /* Locate Shared PRU memory. */
     prussdrv_map_prumem(PRUSS0_SHARED_DATARAM, &sharedMem);
 
@@ -134,8 +161,8 @@ int main (int argc, char **argv)
     prussdrv_pru_disable(PRU_NUM1);
     prussdrv_pru_write_memory(PRUSS0_PRU0_IRAM, 0, abx_pru0, sizeof(abx_pru0));
     prussdrv_pru_write_memory(PRUSS0_PRU1_IRAM, 0, abx_pru1, sizeof(abx_pru1));
-    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0, ribbon, sizeof(ribbon));
-    prussdrv_pru_write_memory(PRUSS0_SHARED_DATARAM, 0, ribbon, sizeof(ribbon));
+    prussdrv_pru_write_memory(PRUSS0_PRU0_DATARAM, 0, first, 0x4000);
+    prussdrv_pru_write_memory(PRUSS0_SHARED_DATARAM, 0, first+0x4000/sizeof(int), 0x2000);
     //prussdrv_pru_enable(PRU_NUM1);
     prussdrv_pru_enable(PRU_NUM0);
 
@@ -151,16 +178,23 @@ int main (int argc, char **argv)
     printf("INFO: PRU sent interrupt.\n");
     prussdrv_pru_clear_event (PRU0_ARM_INTERRUPT);
 
+    /* open the device */
+    mem_fd = open("/dev/mem", O_RDWR);
+    if (mem_fd < 0) {
+        printf("ERROR: Failed to open /dev/mem (%s)\n", strerror(errno));
+        goto CLEANUP;
+    }
+
     /* map the DDR memory */
-    ddrMem = mmap(0, 0x0FFFFFFF, PROT_WRITE | PROT_READ, MAP_SHARED, mem_fd, DDR_BASEADDR);
+    ddrMem = mmap(0, DDR_RES_SIZE, PROT_WRITE | PROT_READ, MAP_SHARED, mem_fd, DDR_RESERVED);
     if (ddrMem == NULL) {
         printf("ERROR: Failed to map the device (%s)\n", strerror(errno));
         goto CLEANUP;
     }
 
-    unsigned long read_addr = 0x8c000000;
+    unsigned long read_addr = DDR_RESERVED;
     //unsigned long read_addr = 0x8c00fe00;
-    unsigned long read_offs = read_addr - 0x80000000;
+    unsigned long read_offs = 0;
     printf("read_addr: %08lx read_offs: %08lx ddrMem: %08lx\n",
         read_addr, read_offs, (unsigned long)ddrMem);
     int i;
@@ -187,9 +221,11 @@ CLEANUP:
     prussdrv_pru_disable(PRU_NUM1);
     prussdrv_exit ();
     if (ddrMem)
-        munmap(ddrMem, 0x0FFFFFFF);
+        munmap(ddrMem, DDR_RES_SIZE);
     if (mem_fd)
         close(mem_fd);
+    if (app_fd)
+        fclose(app_fd);
 
     return(0);
 }
