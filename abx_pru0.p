@@ -7,12 +7,13 @@
 .origin 0
 .entrypoint abx_pru0
 #include "pru.hp"
+#define localdata_minus_16k r24
+#define shared_minus_32k r25
 #define ddr r26
 #define pru1_r30 r27
 #define pru1_r31 r28
 #define localdata0 c24
 #define localdata2 c25
-#define shared_minus_16k c28
 #define AHI_EN 0b111110
 #define ALO_EN 0b111101
 #define DATAOUT_EN 0b011011 // also asserts EXTSEL
@@ -108,8 +109,12 @@ abx_pru0:
     // Point c24 at 0x00000n00, PRU0 Local Data RAM (localdata0)
     // Point c25 at 0x00002n00, PRU1 Local Data RAM (localdata1)
     POKE CTBIR_0, 0
-    // Point c28 at 0x00nnnn00, Shared PRU RAM (shared_minus_16k)
-    POKE CTPPR_0, 0x100-0x40
+    // Point c28 at 0x00nnnn00, Shared PRU RAM (shared_minus_32k)
+    POKE CTPPR_0, 0x100-0x80
+    // Initialize localdata_minus_16k
+    mov localdata_minus_16k, 0-0x4000
+    // Initialize shared_minus_32k
+    mov shared_minus_32k, 0x10000-0x4000
     CLEAR_MEMORY 0x8c000000, 0x8fffffff
 //    CLEAR_MEMORY 0, 0x1ffff
 //    // Put rainbow ML routine in RAM
@@ -140,7 +145,7 @@ abx_pru0:
     mov r1, 0
     mov r6, 0
 capture:
-    qbbc quit, r31, RESET_BIT // RESET
+    //qbbc quit, r31, RESET_BIT // RESET
     wbc r31, PHI2_BIT
     wbs r31, PHI2_BIT // PHI2 rising edge
     lbbo r1.b1, pru1_r31, 0, 1 // AHI
@@ -173,16 +178,8 @@ mem:
     lbbo r1.b1, pru1_r31, 0, 1 // AHI
     ldi r30, ALO_EN
     NOP
-#define D5XX
-#ifdef D5XX
-    //qbne mem, r1.b1, 0xd5 // Only respond to D5XX
-    //qbne mem, r1.b1, 0x00 // Only respond to D5XX
-    BLT mem, r1.b1, 0x40
-    BGT mem, r1.b1, 0x5f
-#else
-    qble mem, r1.b1, 0x70 // Ignore high mem
-    qble mem40_6f, r1.b1, 0x40 // Dispatch
-#endif
+    BGE mem, r1.b1, 0x80 // Ignore high mem
+    BLT mem, r1.b1, 0x40 // Ignore low mem
 .macro MEM_MACRO
 .mparam membase
     qbbc mem, r31, REF_BIT // Ignore REF cycles
@@ -192,35 +189,20 @@ write:
     ldi r30, DATAIN_EN
     EN_DELAY
     lbbo r3, pru1_r31, 0, 4 // DATAIN
-#ifdef MARK
-    sbco pru1_r30.b0, membase, r1.w0, 1
-#else
-#ifdef D5XX
-    sbco r3, membase, r1.w0, 1
-#else
-    sbco r3, membase, r1.w0, 1
-#endif
-#endif
+    sbbo r3, membase, r1.w0, 1
     jmp mem
 read:
     ldi r30, DATAOUT_EN
     lbbo r1.b0, pru1_r31, 0, 1 // ALO
-#ifdef D5XX
-    lbco r3.b1, membase, r1.w0, 1
-#else
-    lbco r3.b1, membase, r1.w0, 1
-#endif
+    lbbo r3.b1, membase, r1.w0, 1
     sbbo r3, pru1_r30, 0, 2 // DATAOUT
     mov r30.b1, r3.b1 // DATAOUT
-#ifdef MARK
-    sbco ddr.b3, membase, r1.w0, 1
-#endif
     jmp mem
 .endm
-mem40_6f:
-    MEM_MACRO shared_minus_16k
 mem00_3f:
-    MEM_MACRO localdata0
+    MEM_MACRO localdata_minus_16k
+mem40_6f:
+    MEM_MACRO shared_minus_32k
 quit:
     mov r0, 0x10000
     mov r1, 0x20000
