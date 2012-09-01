@@ -26,6 +26,11 @@ Part List
 * Jumper Wire https://www.adafruit.com/products/759
 * 6 8-bit level shifters https://www.adafruit.com/products/735
 
+Demo
+----
+
+* http://www.youtube.com/watch?v=1irR4TQ5aMA
+
 Caveats
 -------
 
