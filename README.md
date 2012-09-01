@@ -20,11 +20,18 @@ Schematic
 Part List
 ---------
 
-* Beaglebone http://www.amazon.com/gp/product/B007KW80M6/ref=oh_details_o03_s00_i00
-* Jumper Wire http://www.amazon.com/gp/product/B0040DEI9M/ref=oh_details_o00_s00_i00
-* Jumper Wire http://www.amazon.com/gp/product/B0002H7AIG/ref=oh_details_o00_s00_i01
-* Jumper Wire https://www.adafruit.com/products/759
-* 6 8-bit level shifters https://www.adafruit.com/products/735
+* [Beaglebone](http://www.amazon.com/gp/product/B007KW80M6/ref=oh_details_o03_s00_i00)
+* [Jumper Wire](http://www.amazon.com/gp/product/B0040DEI9M/ref=oh_details_o00_s00_i00)
+* [Jumper Wire](http://www.amazon.com/gp/product/B0002H7AIG/ref=oh_details_o00_s00_i01)
+* [Jumper Wire](https://www.adafruit.com/products/759)
+* [6 8-bit level shifters](https://www.adafruit.com/products/735)
+
+Photos
+------
+
+![ABX](https://github.com/lybrown/abx/raw/master/photos/abx1-small.jpg "ABX attached to stock Atari 600XL")
+![ABX](https://github.com/lybrown/abx/raw/master/photos/abx2-small.jpg "ABX attached to stock Atari 600XL")
+
 
 Caveats
 -------
