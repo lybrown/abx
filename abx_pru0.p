@@ -24,6 +24,7 @@
 #define RW_BIT 14
 #define PHI2_BIT 15
 #define RESET_BIT 16
+#define STRIDE 64
 .macro CLEAR_MEMORY
 .mparam from, to
     zero &r2, 32
@@ -106,7 +107,7 @@ abx_pru0:
     mov r30, 0xffffffff
     sbbo r30, pru1_r30, 0, 4
     // Load DDR address
-    mov ddr, 0x8c000000
+    mov ddr, 0x86c00000
     // Point c24 at 0x00000n00, PRU0 Local Data RAM (localdata0)
     // Point c25 at 0x00002n00, PRU1 Local Data RAM (localdata1)
     POKE CTBIR_0, 0
@@ -116,58 +117,10 @@ abx_pru0:
     mov localdata_minus_16k, 0-0x4000
     // Initialize shared_minus_32k
     mov shared_minus_32k, 0x10000-0x8000
-    CLEAR_MEMORY 0x8c000000, 0x8fffffff
-//    CLEAR_MEMORY 0, 0x1ffff
-//    // Put rainbow ML routine in RAM
-//    mov r4, 0
-//    POKE r4, 0x8d00a978
-//    add r4, r4, 4
-//    POKE r4, 0x0e8dd20e
-//    add r4, r4, 4
-//    POKE r4, 0xd40a8ed4
-//    add r4, r4, 4
-//    POKE r4, 0xe8d01a8e
-//    add r4, r4, 4
-//    POKE r4, 0xd40bade8
-//    add r4, r4, 4
-//    POKE r4, 0x9888f3d0
-//    add r4, r4, 4
-//    POKE r4, 0xd40a8eaa
-//    add r4, r4, 4
-//    POKE r4, 0x0000eb50
+    //CLEAR_MEMORY 0x8c000000, 0x8fffffff
     ENABLE_BUFFERS
     ldi r30, AHI_EN
     DELAY 0x10000000
-//#define SIMPLE 1
-//#define CAPTURE 1
-#ifdef SIMPLE
-    mov r4, 0
-    mov r5, 0x2000
-    mov r1, 0
-    mov r6, 0
-capture:
-    //qbbc quit, r31, RESET_BIT // RESET
-    wbc r31, PHI2_BIT
-    wbs r31, PHI2_BIT // PHI2 rising edge
-    lbbo r1.b1, pru1_r31, 0, 1 // AHI
-    ldi r30, ALO_EN
-    EN_DELAY
-    lbbo r1.b0, pru1_r31, 0, 1 // ALO
-    ldi r30, DATAIN_EN
-    EN_DELAY
-    lbbo r1.b2, pru1_r31, 0, 1 // DATAIN
-    ldi r30, AHI_EN
-#ifdef CAPTURE
-    mov r1.b3, r31.b0
-    sbbo r1, r4, 0, 4
-    add r4, r4, 4
-    qblt capture, r5, r4
-#else
-    sbbo r1.b2, 0, r1.w0, 1
-    jmp capture
-#endif
-    jmp quit
-#endif
 mem:
     qbbc quit, r31, RESET_BIT // RESET
     wbc r31, PHI2_BIT
@@ -190,10 +143,10 @@ mem:
     // 0xD8 - 0xFF RAM / ROM
 
     qbbc mem, r31, REF_BIT // Ignore REF cycles
+    qbeq memD7, r1.b1, 0xD7 // Blit request 0xD7
     BLT mem, r1.b1, 0x40 // Ignore low mem < 0x40
-    //BGE memA0_FF, r1.b1, 0xA0 // >= 0xA0
-    BGE mem, r1.b1, 0xA0 // >= 0xA0
-    BGE mem80_A0, r1.b1, 0x80 // 0x40 <= ahi < 0x80
+    BGE mem, r1.b1, 0xA0 // Ignore high mem >= 0xA0
+    BGE mem80_A0, r1.b1, 0x80 // 0x80 <= ahi < 0xA0
 .macro MEM_MACRO
 .mparam membase
     qbbs read, r31, RW_BIT // RW
@@ -216,41 +169,39 @@ mem40_80:
     MEM_MACRO localdata_minus_16k
 mem80_A0:
     MEM_MACRO shared_minus_32k
-memA0_FF:
-    qbbs mem, r31, RW_BIT // RW
-    qbne mem, r1.b1, 0xD7 // ahi != 0xD7
 memD7:
+    qbbs mem, r31, RW_BIT // RW - ignore read
     // Blit new bank into 24K region from 0x4000 - 0xA000
+    mov r3.w1, 0
     lbbo r3.b1, pru1_r31, 0, 1 // ALO
     ldi r30, DATAIN_EN
     EN_DELAY
-    lbbo r3.b0, pru1_r31, 0, 4 // DATAIN
-    lsl r2, r3, 13 // Multiply by 24K
-    lsl r3, r3, 12
+    lbbo r3.b0, pru1_r31, 0, 1 // DATAIN
+    lsl r2, r3, 14 // Multiply by 24K
+    lsl r3, r3, 13
     add r3, r3, r2
     add r3, r3, ddr // Add to ddr base
     mov r0, 0
     mov r1, 0x4000
 blit1:
-    lbbo r4, r3, r0, 64
-    sbco r4, localdata0, r0, 64
-    add r0, r0, 64
+    lbbo r4, r3, r0, STRIDE
+    sbco r4, localdata0, r0, STRIDE
+    add r0, r0, STRIDE
     BLE blit1, r0, r1
     add r3, r3, r1
     mov r0, 0
     mov r1, 0x2000
 blit2:
-    lbbo r4, r3, r0, 64
-    sbco r4, shared, r0, 64
-    add r0, r0, 64
+    lbbo r4, r3, r0, STRIDE
+    sbco r4, shared, r0, STRIDE
+    add r0, r0, STRIDE
     BLE blit2, r0, r1
     jmp mem
 quit:
-    mov r0, 0x10000
+    mov r0, 0x00000
     mov r1, 0x20000
     mov r2, 0
 copy:
-#define STRIDE 32
     lbbo r4, r0, r2, STRIDE
     sbbo r4, ddr, r2, STRIDE
     add r2, r2, STRIDE

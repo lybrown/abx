@@ -14,8 +14,8 @@
 //#include "abx_jumptable.h"
 
 #define DDR_BASEADDR 0x80000000
-#define DDR_RESERVED 0x8C000000
-#define DDR_RES_SIZE 0x03FFFFFF
+#define DDR_RESERVED 0x86C00000
+#define DDR_RES_SIZE 0x093FFFFF
 
 int mux(char *name, int val)
 {
@@ -31,6 +31,11 @@ int main (int argc, char **argv)
 {
     unsigned int ret;
     tpruss_intc_initdata pruss_intc_initdata = PRUSS_INTC_INITDATA;
+
+    if (argc <= 1) {
+        printf("Usage: abx <app.mem>\n");
+        return 0;
+    }
 
     printf("INFO: Initializing driver\n");
     /* Initialize the PRU */
@@ -55,9 +60,9 @@ int main (int argc, char **argv)
     static void *sharedMem = 0;
     static FILE *app_fd = 0;
 
-    app_fd = fopen("app.mem", "r");
+    app_fd = fopen(argv[1], "r");
     if (app_fd == 0) {
-        printf("ERROR: Failed to open app.mem (%s)\n", strerror(errno));
+        printf("ERROR: Failed to open %s (%s)\n", argv[1], strerror(errno));
         goto CLEANUP;
     }
 
@@ -76,7 +81,7 @@ int main (int argc, char **argv)
     }
 
     size_t count = fread(ddrMem, 1, 256*1024*1024, app_fd);
-    printf("INFO: Read %u bytes from app.mem\n", count);
+    printf("INFO: Read %u bytes from %s\n", count, argv[1]);
     static unsigned int first[(0x4000+0x2000)/sizeof(int)];
     memcpy(first, ddrMem, 0x6000);
 
