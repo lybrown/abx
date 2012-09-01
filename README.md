@@ -37,4 +37,6 @@ Caveats
 I've only tested on a stock NTSC Atari 600XL. ABX *does* assert
 EXTSEL on reads from the page range, but I haven't verified that main
 memory is properly disabled during these reads. If not, there would
-be bus contention on a system with more than 16K RAM.
+be bus contention on a system with more than 16K RAM. Importantly,
+ABX does not yet keep track of the state of PORTB or heed EXTENB,
+so it *does* cause bus contention when the self-test ROM is enabled.
