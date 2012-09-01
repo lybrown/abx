@@ -24,7 +24,7 @@ Part List
 * [Jumper Wire](http://www.amazon.com/gp/product/B0040DEI9M/ref=oh_details_o00_s00_i00)
 * [Jumper Wire](http://www.amazon.com/gp/product/B0002H7AIG/ref=oh_details_o00_s00_i01)
 * [Jumper Wire](https://www.adafruit.com/products/759)
-* [6 8-bit level shifters](https://www.adafruit.com/products/735)
+* [Five 8-bit level shifters](https://www.adafruit.com/products/735)
 
 Photos
 ------
@@ -32,6 +32,10 @@ Photos
 ![ABX](https://github.com/lybrown/abx/raw/master/photos/abx1-small.jpg "ABX attached to stock Atari 600XL")
 ![ABX](https://github.com/lybrown/abx/raw/master/photos/abx2-small.jpg "ABX attached to stock Atari 600XL")
 
+Demo
+----
+
+* http://www.youtube.com/watch?v=1irR4TQ5aMA
 
 Caveats
 -------
@@ -39,4 +43,6 @@ Caveats
 I've only tested on a stock NTSC Atari 600XL. ABX *does* assert
 EXTSEL on reads from the page range, but I haven't verified that main
 memory is properly disabled during these reads. If not, there would
-be bus contention on a system with more than 16K RAM.
+be bus contention on a system with more than 16K RAM. Importantly,
+ABX does not yet keep track of the state of PORTB or heed EXTENB,
+so it *does* cause bus contention when the self-test ROM is enabled.
