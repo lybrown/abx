@@ -24,7 +24,7 @@ Part List
 * Jumper Wire http://www.amazon.com/gp/product/B0040DEI9M/ref=oh_details_o00_s00_i00
 * Jumper Wire http://www.amazon.com/gp/product/B0002H7AIG/ref=oh_details_o00_s00_i01
 * Jumper Wire https://www.adafruit.com/products/759
-* 6 8-bit level shifters https://www.adafruit.com/products/735
+* Five 8-bit level shifters https://www.adafruit.com/products/735
 
 Demo
 ----
