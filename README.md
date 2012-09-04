@@ -26,8 +26,8 @@ Part List
 * [Jumper Wire](https://www.adafruit.com/products/759)
 * [Five 8-bit level shifters](https://www.adafruit.com/products/735)
 * [60 pin edge connector (cut down to 50 pins)](http://www.altex.com/60-Pin-Edge-Connector-IDE60-P146824.aspx)
-* Spare 40 pin ATA ribbon cable
-* Spare 9 pin serial ribbon cable
+* Spare 34 pin ATA ribbon cable
+* Spare 15 pin serial ribbon cable
 
 Photos
 ------
