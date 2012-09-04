@@ -29,8 +29,8 @@ Part List
 Photos
 ------
 
-![ABX](https://github.com/lybrown/abx/raw/master/photos/abx1-small.jpg "ABX attached to stock Atari 600XL")
-![ABX](https://github.com/lybrown/abx/raw/master/photos/abx2-small.jpg "ABX attached to stock Atari 600XL")
+[![ABX](https://github.com/lybrown/abx/raw/master/photos/abx1-small.jpg "ABX attached to stock Atari 600XL")](https://github.com/lybrown/abx/raw/master/photos/abx1.jpg)
+[![ABX](https://github.com/lybrown/abx/raw/master/photos/abx2-small.jpg "ABX attached to stock Atari 600XL")](https://github.com/lybrown/abx/raw/master/photos/abx2.jpg)
 
 Demo
 ----
